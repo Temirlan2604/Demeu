@@ -1,0 +1,18 @@
+{% extends "clinic/base.html" %}
+{% block content %}
+<h1>Наши врачи</h1>
+<div class="row">
+  {% for doc in doctors %}
+    <div class="col-md-4 mb-3">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Dr. {{ doc.user.last_name }}</h5>
+          <p class="card-text">Специализация: {{ doc.specialization }}</p>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p>Информация о врачах пока недоступна.</p>
+  {% endfor %}
+</div>
+{% endblock %}
