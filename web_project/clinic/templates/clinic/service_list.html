@@ -1,0 +1,11 @@
+{% extends 'clinic/base.html' %}
+{% block content %}
+<h2>Услуги</h2>
+<div class="row">
+  {% for s in services %}
+    <div class="col-md-4"><div class="card"><div class="card-body">
+      <h5>{{ s.name }}</h5><p>{{ s.price }} ₸</p>
+    </div></div></div>
+  {% empty %}<p>Услуг нет.</p>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends 'clinic/base.html' %}
+{% block content %}
+<h2>Врачи</h2>
+<div class="row">
+  {% for d in doctors %}
+    <div class="col-md-4"><div class="card"><div class="card-body">
+      <h5>Dr. {{ d.user.last_name }}</h5>
+      <p>{{ d.specialization }}</p>
+      <a href="{% url 'doctor_schedule' d.pk %}" class="btn btn-primary">Расписание</a>
+    </div></div></div>
+  {% empty %}<p>Врачей нет.</p>{% endfor %}
+</div>
+{% endblock %}

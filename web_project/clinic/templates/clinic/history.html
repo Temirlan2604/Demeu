@@ -1,0 +1,10 @@
+{% extends 'clinic/base.html' %}
+{% block content %}
+<h2>История приёмов</h2>
+<ul>
+  {% for a in appointments %}
+    <li>{{ a.service }} у Dr. {{ a.doctor.user.last_name }} ({{ a.date_time }})
+      <a href="{% url 'leave_review' a.pk %}">Оставить отзыв</a></li>
+  {% empty %}<li>Нет приёмов</li>{% endfor %}
+</ul>
+{% endblock %}

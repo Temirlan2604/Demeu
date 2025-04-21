@@ -1,8 +1,16 @@
 from django.urls import path
-from .views_ui import info_view, doctors_view, register_view
-
+from .views_ui import (
+    register, user_login, user_logout,
+    service_list, doctor_list, doctor_schedule,
+    history, leave_review
+)
 urlpatterns = [
-    path('', info_view, name='info_ui'),
-    path('doctors/', doctors_view, name='doctors_ui'),
-    path('register/', register_view, name='register_ui'),
+    path('register/', register, name='register'),
+    path('login/', user_login, name='login'),
+    path('logout/', user_logout, name='logout'),
+    path('', service_list, name='service_list'),
+    path('doctors/', doctor_list, name='doctor_list'),
+    path('doctors/<int:pk>/', doctor_schedule, name='doctor_schedule'),
+    path('history/', history, name='history'),
+    path('review/<int:pk>/', leave_review, name='leave_review'),
 ]

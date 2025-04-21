@@ -1,0 +1,8 @@
+{% extends 'clinic/base.html' %}
+{% block content %}
+<h2>Расписание {{ doctor.user.last_name }}</h2>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-success">Записаться</button></form>
+<hr>
+<h4>Существующие записи</h4>
+<ul>{% for a in appointments %}<li>{{ a.date_time }}</li>{% empty %}<li>Нет записей</li>{% endfor %}</ul>
+{% endblock %}

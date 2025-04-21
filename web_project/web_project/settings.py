@@ -129,3 +129,6 @@ STATIC_URL = "/static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "clinic.CustomUser"
+
+LOGIN_URL = 'login'        # имя URL из urls_ui.py
+LOGIN_REDIRECT_URL = '/'   # куда идти после успешного входа

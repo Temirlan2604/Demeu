@@ -88,3 +88,19 @@ class Appointment(models.Model):
     class Meta:
         verbose_name = "Запись"
         verbose_name_plural = "Записи"
+
+class Review(models.Model):
+    appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE)
+    rating = models.IntegerField(
+        choices=[(i, str(i)) for i in range(1, 6)],
+        verbose_name="Оценка"
+    )
+    comment = models.TextField(blank=True, verbose_name="Комментарий")
+    created = models.DateTimeField(auto_now_add=True, verbose_name="Дата отзыва")
+
+    def __str__(self):
+        return f"Отзыв к {self.appointment} — {self.rating}"
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
