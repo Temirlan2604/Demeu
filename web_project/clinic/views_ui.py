@@ -3,7 +3,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from .forms import RegistrationForm, LoginForm, AppointmentForm, ReviewForm
 from .models import Service, Doctor, Appointment, Review
-from django.db.models import Q
+from django.db.models import Q, Avg
 
 # Общее контекстное меню
 def navbar_context(request):
@@ -49,7 +49,7 @@ def service_list(request):
 def doctor_list(request):
     q = request.GET.get('q', '')
     spec = request.GET.get('spec', '')
-    doctors = Doctor.objects.select_related('user')
+    doctors = Doctor.objects.select_related('user').annotate(avg_rating=Avg('appointment__review__rating'))
     if q:
         doctors = doctors.filter(
             Q(user__first_name__icontains=q) | Q(user__last_name__icontains=q)
@@ -61,7 +61,7 @@ def doctor_list(request):
 # Расписание врача
 @login_required
 def doctor_schedule(request, pk):
-    doctor = Doctor.objects.get(pk=pk)
+    doctor = Doctor.objects.annotate(avg_rating=Avg('appointment__review__rating')).get(pk=pk)
     appointments = Appointment.objects.filter(doctor=doctor)
     form = AppointmentForm(initial={'doctor':doctor})
     if request.method=='POST':
@@ -71,7 +71,7 @@ def doctor_schedule(request, pk):
             appt.patient = request.user.patient
             appt.save()
             return redirect('history')
-    return render(request,'clinic/doctor_schedule.html',{ 'doctor':doctor,'appointments':appointments,'form':form })
+    return render(request,'clinic/doctor_schedule.html',{ 'doctor':doctor,'appointments':appointments,'form':form, 'avg_rating': doctor.avg_rating})
 
 # История приёмов
 @login_required

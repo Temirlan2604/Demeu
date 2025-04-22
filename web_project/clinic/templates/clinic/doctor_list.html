@@ -4,30 +4,18 @@
 
 <div class="row mb-3">
   <div class="col">
-    <input
-      type="text"
-      id="doctor-filter-name"
-      class="form-control"
-      placeholder="Поиск врача (имя/отчество)..."
-    >
+    <input type="text" id="doctor-filter-name" class="form-control" placeholder="Поиск врача...">
   </div>
   <div class="col">
-    <input
-      type="text"
-      id="doctor-filter-spec"
-      class="form-control"
-      placeholder="Фильтр по специализации..."
-    >
+    <input type="text" id="doctor-filter-spec" class="form-control" placeholder="Фильтр по специализации...">
   </div>
 </div>
 
 <div class="row">
   {% for d in doctors %}
-    <div
-      class="col-md-4 doctor-item"
-      data-name="Dr. {{ d.user.first_name }} {{ d.user.patronymic }}"
-      data-spec="{{ d.specialization }}"
-    >
+    <div class="col-md-4 doctor-item"
+         data-name="{{ d.user.first_name }} {{ d.user.patronymic }}"
+         data-spec="{{ d.specialization }}">
       <div class="card mb-3">
         <div class="card-body">
           <h5>{{ d.user.first_name }} {{ d.user.patronymic }}</h5>
@@ -43,22 +31,17 @@
 
 <script>
 // Live‑фильтрация по имени и специализации
-const nameInput = document.getElementById('doctor-filter-name');
-const specInput = document.getElementById('doctor-filter-spec');
-const items = document.querySelectorAll('.doctor-item');
+document.getElementById('doctor-filter-name').addEventListener('input', filterDoctors);
+document.getElementById('doctor-filter-spec').addEventListener('input', filterDoctors);
 
 function filterDoctors() {
-  const qName = nameInput.value.trim().toLowerCase();
-  const qSpec = specInput.value.trim().toLowerCase();
-  items.forEach(el => {
+  const qName = document.getElementById('doctor-filter-name').value.trim().toLowerCase();
+  const qSpec = document.getElementById('doctor-filter-spec').value.trim().toLowerCase();
+  document.querySelectorAll('.doctor-item').forEach(el => {
     const name = el.dataset.name.toLowerCase();
     const spec = el.dataset.spec.toLowerCase();
-    // Показываем, если удовлетворяет обоим фильтрам
     el.style.display = (name.includes(qName) && spec.includes(qSpec)) ? '' : 'none';
   });
 }
-
-nameInput.addEventListener('input', filterDoctors);
-specInput.addEventListener('input', filterDoctors);
 </script>
 {% endblock %}
