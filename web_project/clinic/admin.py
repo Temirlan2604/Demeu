@@ -5,18 +5,18 @@ from .models import CustomUser, Doctor, Patient, Service, Appointment
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
     list_display = ('phone', 'first_name', 'last_name', 'is_staff', 'is_superuser')
-    search_fields = ('phone', 'first_name', 'last_name')
+    search_fields = ('phone', 'first_name', 'last_name', 'patronymic')
     ordering = ('phone',)
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
-        ('Личная информация', {'fields': ('first_name', 'last_name')}),
+        ('Личная информация', {'fields': ('first_name', 'patronymic', 'last_name')}),
         ('Права доступа', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Даты', {'fields': ('last_login',)}),
     )
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('phone', 'first_name', 'last_name', 'password1', 'password2', 'is_staff', 'is_superuser')}
+            'fields': ('phone', 'first_name', 'last_name', 'patronymic', 'password1', 'password2', 'is_staff', 'is_superuser')}
         ),
     )
 

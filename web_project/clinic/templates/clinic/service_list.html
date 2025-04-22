@@ -1,11 +1,24 @@
 {% extends 'clinic/base.html' %}
 {% block content %}
 <h2>Услуги</h2>
+<form method="get" class="mb-4">
+  <div class="input-group">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Поиск услуги..." oninput="if(!this.value) this.form.submit()">
+    <button class="btn btn-outline-secondary" type="submit">Поиск</button>
+  </div>
+</form>
 <div class="row">
   {% for s in services %}
-    <div class="col-md-4"><div class="card"><div class="card-body">
-      <h5>{{ s.name }}</h5><p>{{ s.price }} ₸</p>
-    </div></div></div>
-  {% empty %}<p>Услуг нет.</p>{% endfor %}
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5>{{ s.name }}</h5>
+          <p>{{ s.price }} ₸</p>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p>Услуг не найдено.</p>
+  {% endfor %}
 </div>
 {% endblock %}

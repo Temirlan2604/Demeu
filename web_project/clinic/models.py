@@ -23,18 +23,19 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField(max_length=20, unique=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    first_name = models.CharField(max_length=100, verbose_name="Имя", blank=True)
+    last_name = models.CharField(max_length=100, verbose_name="Фамилия", blank=True)
+    patronymic = models.CharField(max_length=100, verbose_name="Отчество", blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = "phone"
-    REQUIRED_FIELDS = ["first_name", "last_name"]
+    REQUIRED_FIELDS = ["first_name", "last_name", "patronymic"]
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name} {self.patronymic}".strip()
 
     class Meta:
         verbose_name = "Пользователь"
@@ -46,7 +47,7 @@ class Doctor(models.Model):
     specialization = models.CharField(max_length=100)
 
     def __str__(self):
-        return f"Dr. {self.user.last_name}"
+        return f"{self.user.first_name} {self.user.patronymic}"
 
     class Meta:
         verbose_name = "Врач"
@@ -89,11 +90,11 @@ class Appointment(models.Model):
         verbose_name = "Запись"
         verbose_name_plural = "Записи"
 
+
 class Review(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE)
     rating = models.IntegerField(
-        choices=[(i, str(i)) for i in range(1, 6)],
-        verbose_name="Оценка"
+        choices=[(i, str(i)) for i in range(1, 6)], verbose_name="Оценка"
     )
     comment = models.TextField(blank=True, verbose_name="Комментарий")
     created = models.DateTimeField(auto_now_add=True, verbose_name="Дата отзыва")

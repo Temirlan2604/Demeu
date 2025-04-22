@@ -1,13 +1,32 @@
 {% extends 'clinic/base.html' %}
 {% block content %}
 <h2>Врачи</h2>
+<form method="get" class="mb-4">
+  <div class="row g-2">
+    <div class="col">
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Поиск врача..." oninput="if(!this.value) this.form.submit()">
+    </div>
+    <div class="col">
+      <input type="text" name="spec" value="{{ spec }}" class="form-control" placeholder="Специализация" oninput="if(!this.value) this.form.submit()">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-outline-secondary" type="submit">Фильтровать</button>
+    </div>
+  </div>
+</form>
 <div class="row">
   {% for d in doctors %}
-    <div class="col-md-4"><div class="card"><div class="card-body">
-      <h5>Dr. {{ d.user.last_name }}</h5>
-      <p>{{ d.specialization }}</p>
-      <a href="{% url 'doctor_schedule' d.pk %}" class="btn btn-primary">Расписание</a>
-    </div></div></div>
-  {% empty %}<p>Врачей нет.</p>{% endfor %}
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5>{{ d.user.first_name }} {{ d.user.patronymic }}</h5>
+          <p>{{ d.specialization }}</p>
+          <a href="{% url 'doctor_schedule' d.pk %}" class="btn btn-primary">Расписание</a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p>Врачи не найдены.</p>
+  {% endfor %}
 </div>
 {% endblock %}

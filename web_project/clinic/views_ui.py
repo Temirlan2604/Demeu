@@ -3,6 +3,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from .forms import RegistrationForm, LoginForm, AppointmentForm, ReviewForm
 from .models import Service, Doctor, Appointment, Review
+from django.db.models import Q
 
 # Общее контекстное меню
 def navbar_context(request):
@@ -36,14 +37,26 @@ def user_logout(request):
 # Список услуг
 @login_required
 def service_list(request):
-    services = Service.objects.all()
-    return render(request,'clinic/service_list.html',{'services':services})
+    q = request.GET.get('q', '')
+    if q:
+        services = Service.objects.filter(name__icontains=q)
+    else:
+        services = Service.objects.all()
+    return render(request, 'clinic/service_list.html', {'services': services, 'q': q})
 
 # Список врачей
 @login_required
 def doctor_list(request):
-    doctors = Doctor.objects.select_related('user').all()
-    return render(request,'clinic/doctor_list.html',{'doctors':doctors})
+    q = request.GET.get('q', '')
+    spec = request.GET.get('spec', '')
+    doctors = Doctor.objects.select_related('user')
+    if q:
+        doctors = doctors.filter(
+            Q(user__first_name__icontains=q) | Q(user__last_name__icontains=q)
+        )
+    if spec:
+        doctors = doctors.filter(specialization__icontains=spec)
+    return render(request, 'clinic/doctor_list.html', {'doctors': doctors, 'q': q, 'spec': spec})
 
 # Расписание врача
 @login_required
