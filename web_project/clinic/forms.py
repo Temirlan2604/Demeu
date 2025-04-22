@@ -40,7 +40,12 @@ class AppointmentForm(forms.ModelForm):
 
 
 class ReviewForm(forms.ModelForm):
-    class Meta:
-        model = Review
-        fields = ["appointment", "rating", "comment"]
-        widgets = {"appointment": forms.HiddenInput}
+     class Meta:
+         model = Review
+         # теперь в форме только оценка и текстовые поля
+         fields = ['rating', 'pros', 'cons']
+         widgets = {
+              'rating': forms.RadioSelect(),
+              'pros': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Что понравилось?'}),
+              'cons': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Что не понравилось?'}),
+          }

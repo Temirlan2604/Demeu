@@ -1,5 +1,29 @@
 {% extends 'clinic/base.html' %}
 {% block content %}
-<h2>Отзыв по приёму {{ appt.date_time }}</h2>
-<form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Сохранить</button></form>
+  <h2>Оставить отзыв по приёму {{ appt.date_time }}</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="mb-3">
+      {{ form.rating.errors }}
+      <label class="form-label">Оценка:</label>
+      {{ form.rating }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.pros.errors }}
+      <label class="form-label">Плюсы:</label>
+      {{ form.pros }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.cons.errors }}
+      <label class="form-label">Минусы:</label>
+      {{ form.cons }}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Отправить отзыв</button>
+  </form>
 {% endblock %}

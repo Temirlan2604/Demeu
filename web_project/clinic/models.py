@@ -94,9 +94,11 @@ class Appointment(models.Model):
 class Review(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE)
     rating = models.IntegerField(
-        choices=[(i, str(i)) for i in range(1, 6)], verbose_name="Оценка"
+        choices=[(i, f"{i} звёзд{'ы' if i>1 else ''}") for i in range(1, 6)],
+        verbose_name="Оценка"
     )
-    comment = models.TextField(blank=True, verbose_name="Комментарий")
+    pros = models.TextField(blank=True, verbose_name="Плюсы")
+    cons = models.TextField(blank=True, verbose_name="Минусы")
     created = models.DateTimeField(auto_now_add=True, verbose_name="Дата отзыва")
 
     def __str__(self):

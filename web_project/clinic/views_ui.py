@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from .forms import RegistrationForm, LoginForm, AppointmentForm, ReviewForm
@@ -82,10 +82,28 @@ def history(request):
 # Оставить отзыв
 @login_required
 def leave_review(request, pk):
-    appt = Appointment.objects.get(pk=pk, patient=request.user.patient)
-    review, created = Review.objects.get_or_create(appointment=appt)
-    form = ReviewForm(request.POST or None, instance=review)
-    if request.method=='POST' and form.is_valid():
-        form.save()
-        return redirect('history')
-    return render(request,'clinic/review_form.html',{'form':form,'appt':appt})
+    # Находим приём, гарантируя, что пациент свой
+    appt = get_object_or_404(Appointment, pk=pk, patient=request.user.patient)
+
+    # Пытаемся загрузить уже существующий отзыв, но не создаём его заранее
+    try:
+        review = Review.objects.get(appointment=appt)
+    except Review.DoesNotExist:
+        review = None
+
+    if request.method == 'POST':
+        # Если отзыв есть, редактируем, иначе создаём новый
+        form = ReviewForm(request.POST, instance=review)
+        if form.is_valid():
+            rev = form.save(commit=False)
+            rev.appointment = appt
+            rev.save()
+            return redirect('history')
+    else:
+        # GET: заполняем форму существующим отзывом или пустой
+        form = ReviewForm(instance=review)
+
+    return render(request, 'clinic/review_form.html', {
+        'form': form,
+        'appt': appt,
+    })

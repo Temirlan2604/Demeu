@@ -3,8 +3,21 @@
 <h2>История приёмов</h2>
 <ul>
   {% for a in appointments %}
-    <li>{{ a.service }} у Dr. {{ a.doctor.user.last_name }} ({{ a.date_time }})
-      <a href="{% url 'leave_review' a.pk %}">Оставить отзыв</a></li>
-  {% empty %}<li>Нет приёмов</li>{% endfor %}
+  <div class="card mb-3 p-3">
+    <strong>{{ a.service }} у {{ a.doctor.user.first_name }} {{ a.doctor.user.patronymic }}</strong>
+    <p>{{ a.date_time }}</p>
+    {% if a.review %}
+      <div><em>Оценка: {{ a.review.rating }}</em></div>
+      <div><strong>Плюсы:</strong> {{ a.review.pros }}</div>
+      <div><strong>Минусы:</strong> {{ a.review.cons }}</div>
+    {% else %}
+      <a href="{% url 'leave_review' a.pk %}" class="btn btn-outline-secondary btn-sm">
+        Оставить отзыв
+      </a>
+    {% endif %}
+  </div>
+{% empty %}
+  <p>Нет приёмов</p>
+{% endfor %}
 </ul>
 {% endblock %}
