@@ -30,4 +30,22 @@
 <div class="container mt-4">{% block content %}{% endblock %}</div>
 <footer>© 2025 Dental Clinic</footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('service-filter').addEventListener('input', function() {
+      const q = this.value.trim().toLowerCase();
+      document.querySelectorAll('.service-item').forEach(el => {
+        const name = el.dataset.name.toLowerCase();
+        el.style.display = name.includes(q) ? '' : 'none';
+      });
+    });
+    </script>
+    <script>
+        document.getElementById('doctor-filter').addEventListener('input', function() {
+          const q = this.value.trim().toLowerCase();
+          document.querySelectorAll('.doctor-item').forEach(el => {
+            const name = el.dataset.name.toLowerCase();
+            el.style.display = name.includes(q) ? '' : 'none';
+          });
+        });
+        </script>       
 </body></html>

@@ -1,15 +1,11 @@
 {% extends 'clinic/base.html' %}
 {% block content %}
 <h2>Услуги</h2>
-<form method="get" class="mb-4">
-  <div class="input-group">
-    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Поиск услуги..." oninput="if(!this.value) this.form.submit()">
-    <button class="btn btn-outline-secondary" type="submit">Поиск</button>
-  </div>
-</form>
+<!-- Поле для живой фильтрации -->
+<input type="text" id="service-filter" class="form-control mb-3" placeholder="Поиск услуги...">
 <div class="row">
   {% for s in services %}
-    <div class="col-md-4">
+    <div class="col-md-4 service-item" data-name="{{ s.name }}">
       <div class="card mb-3">
         <div class="card-body">
           <h5>{{ s.name }}</h5>
@@ -18,7 +14,17 @@
       </div>
     </div>
   {% empty %}
-    <p>Услуг не найдено.</p>
+    <p>Услуг нет.</p>
   {% endfor %}
 </div>
+<script>
+// Живая фильтрация услуг
+document.getElementById('service-filter').addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  document.querySelectorAll('.service-item').forEach(el => {
+    const name = el.dataset.name.toLowerCase();
+    el.style.display = name.includes(q) ? '' : 'none';
+  });
+});
+</script>
 {% endblock %}

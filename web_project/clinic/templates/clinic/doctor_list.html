@@ -1,22 +1,33 @@
 {% extends 'clinic/base.html' %}
 {% block content %}
 <h2>Врачи</h2>
-<form method="get" class="mb-4">
-  <div class="row g-2">
-    <div class="col">
-      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Поиск врача..." oninput="if(!this.value) this.form.submit()">
-    </div>
-    <div class="col">
-      <input type="text" name="spec" value="{{ spec }}" class="form-control" placeholder="Специализация" oninput="if(!this.value) this.form.submit()">
-    </div>
-    <div class="col-auto">
-      <button class="btn btn-outline-secondary" type="submit">Фильтровать</button>
-    </div>
+
+<div class="row mb-3">
+  <div class="col">
+    <input
+      type="text"
+      id="doctor-filter-name"
+      class="form-control"
+      placeholder="Поиск врача (имя/отчество)..."
+    >
   </div>
-</form>
+  <div class="col">
+    <input
+      type="text"
+      id="doctor-filter-spec"
+      class="form-control"
+      placeholder="Фильтр по специализации..."
+    >
+  </div>
+</div>
+
 <div class="row">
   {% for d in doctors %}
-    <div class="col-md-4">
+    <div
+      class="col-md-4 doctor-item"
+      data-name="Dr. {{ d.user.first_name }} {{ d.user.patronymic }}"
+      data-spec="{{ d.specialization }}"
+    >
       <div class="card mb-3">
         <div class="card-body">
           <h5>{{ d.user.first_name }} {{ d.user.patronymic }}</h5>
@@ -29,4 +40,25 @@
     <p>Врачи не найдены.</p>
   {% endfor %}
 </div>
+
+<script>
+// Live‑фильтрация по имени и специализации
+const nameInput = document.getElementById('doctor-filter-name');
+const specInput = document.getElementById('doctor-filter-spec');
+const items = document.querySelectorAll('.doctor-item');
+
+function filterDoctors() {
+  const qName = nameInput.value.trim().toLowerCase();
+  const qSpec = specInput.value.trim().toLowerCase();
+  items.forEach(el => {
+    const name = el.dataset.name.toLowerCase();
+    const spec = el.dataset.spec.toLowerCase();
+    // Показываем, если удовлетворяет обоим фильтрам
+    el.style.display = (name.includes(qName) && spec.includes(qSpec)) ? '' : 'none';
+  });
+}
+
+nameInput.addEventListener('input', filterDoctors);
+specInput.addEventListener('input', filterDoctors);
+</script>
 {% endblock %}
