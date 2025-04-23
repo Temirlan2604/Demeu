@@ -81,12 +81,10 @@ def doctor_schedule(request, pk):
     doctor = get_object_or_404(Doctor, pk=pk)
     appointments = Appointment.objects.filter(doctor=doctor)
     services = Service.objects.all()
-    avg_rating = (
-        Review.objects.filter(appointment__doctor=doctor).aggregate(avg=Avg("rating"))[
-            "avg"
-        ]
-        or 0
+    avg_data = Review.objects.filter(appointment__doctor=doctor).aggregate(
+        avg=Avg("rating")
     )
+    avg_rating = avg_data["avg"] or 0.0
 
     upcoming = appointments.filter(date_time__gte=timezone.now()).order_by("date_time")
 
@@ -110,7 +108,8 @@ def doctor_schedule(request, pk):
             "appointments": appointments,
             "services": services,
             "upcoming": upcoming,
-            'avg_rating': avg_rating,
+            "avg_rating": avg_rating,
+            'star_range':  range(1, 6),
         },
     )
 

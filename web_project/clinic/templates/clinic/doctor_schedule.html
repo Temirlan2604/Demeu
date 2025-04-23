@@ -28,9 +28,17 @@
     <h2 class="mb-1">
       {{ doctor.user.last_name }} {{ doctor.user.first_name }} {{ doctor.user.patronymic }}
     </h2>
+    <!-- Вот тут выводим звёздочки -->
     <p class="mb-2">
-       <strong>Средний рейтинг:</strong>
-       {{ avg_rating|floatformat:1 }} / 5
+      <strong>Средний рейтинг:</strong>
+      {% for i in star_range %}
+        {% if i <= avg_rating %}
+          <span class="text-warning">&#9733;</span>
+        {% else %}
+          <span class="text-muted">&#9734;</span>
+        {% endif %}
+      {% endfor %}
+      <small class="text-secondary">({{ avg_rating|floatformat:1 }} / 5)</small>
     </p>
     <p class="text-secondary mb-3">
       <strong>Специализация:</strong> {{ doctor.specialization }}
