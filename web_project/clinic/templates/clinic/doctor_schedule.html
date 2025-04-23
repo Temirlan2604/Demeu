@@ -2,31 +2,53 @@
 {% load static %}
 
 {% block content %}
-  <h2>Dr. {{ doctor.user.first_name }} {{ doctor.user.patronymic }} {{ doctor.user.last_name }}</h2>
-  <p><strong>Специализация:</strong> {{ doctor.specialization }}</p>
-
-  {% if messages %}
-    {% for msg in messages %}
-      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
-        {{ msg }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<!-- Фото врача -->
+<div class="row align-items-center mb-4">
+  <!-- Левая колонка: квадратная рамка с фото -->
+  <div class="col-md-3 text-center">
+    {% if doctor.photo %}
+      <div class="border rounded overflow-hidden" style="width:300px; height:300px; margin:0 auto;">
+        <img
+          src="{{ doctor.photo.url }}"
+          alt="Фото Dr. {{ doctor.user.last_name }}"
+          class="img-fluid"
+          style="width:100%; height:100%; width:auto; height:auto;"
+        >
       </div>
-    {% endfor %}
-  {% endif %}
+    {% else %}
+      <div class="border rounded bg-light d-flex align-items-center justify-content-center mb-2" 
+           style="width:300px; height:300px;">
+        <span class="text-muted">Нет фото</span>
+      </div>
+    {% endif %}
+  </div>
 
-  <h4>Ваши будущие приёмы</h4>
-  {% if upcoming %}
-    <ul class="list-group mb-4">
-      {% for appt in upcoming %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          {{ appt.date_time|date:"d.m.Y H:i" }}
-          <span class="badge bg-secondary">{{ appt.service.name }}</span>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-muted mb-4">Нет запланированных приёмов.</p>
-  {% endif %}
+  <!-- Правая колонка: данные доктора и кнопка -->
+  <div class="col-md-9">
+    <h2 class="mb-1">
+      {{ doctor.user.last_name }} {{ doctor.user.first_name }} {{ doctor.user.patronymic }}
+    </h2>
+    <p class="mb-2">
+       <strong>Средний рейтинг:</strong>
+       {{ avg_rating|floatformat:1 }} / 5
+    </p>
+    <p class="text-secondary mb-3">
+      <strong>Специализация:</strong> {{ doctor.specialization }}
+    </p>
+
+    <h5 class="mb-2">Будущие приёмы</h5>
+    {% if upcoming %}
+      <ul class="list-group mb-3">
+        {% for appt in upcoming %}
+          <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+            {{ appt.date_time|date:"d.m.Y H:i" }}
+            <span class="badge bg-secondary">{{ appt.service.name }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted mb-3">Нет запланированных приёмов.</p>
+    {% endif %}
 
   <!-- Кнопка открытия модального окна -->
   <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#calendarModal">

@@ -132,3 +132,7 @@ AUTH_USER_MODEL = "clinic.CustomUser"
 
 LOGIN_URL = 'login'        # имя URL из urls_ui.py
 LOGIN_REDIRECT_URL = '/'   # куда идти после успешного входа
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

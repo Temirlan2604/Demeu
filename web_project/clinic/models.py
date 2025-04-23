@@ -45,6 +45,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 class Doctor(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     specialization = models.CharField(max_length=100)
+    photo = models.ImageField(
+       upload_to='doctors_photos/',
+       blank=True,
+       null=True,
+       verbose_name='Фотография'
+   )
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.patronymic}"
