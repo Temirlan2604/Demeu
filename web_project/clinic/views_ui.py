@@ -3,6 +3,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from .forms import RegistrationForm, LoginForm, AppointmentForm, ReviewForm
 from .models import Service, Doctor, Appointment, Review
+from django.contrib import messages
 from django.db.models import Q, Avg
 from django.utils import timezone
 import datetime
@@ -96,6 +97,15 @@ def doctor_schedule(request, pk):
 def history(request):
     appts = Appointment.objects.filter(patient=request.user.patient)
     return render(request,'clinic/history.html',{'appointments':appts})
+
+@login_required
+def cancel_appointment(request, pk):
+    # Убеждаемся, что запись именно этого пациента
+    appt = get_object_or_404(Appointment, pk=pk, patient=request.user.patient)
+    if request.method == 'POST':
+        appt.delete()
+        messages.success(request, 'Ваша запись была успешно отменена.')
+    return redirect('history')
 
 # Оставить отзыв
 @login_required
