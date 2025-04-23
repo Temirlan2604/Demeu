@@ -4,6 +4,8 @@ from django.contrib.auth.decorators import login_required
 from .forms import RegistrationForm, LoginForm, AppointmentForm, ReviewForm
 from .models import Service, Doctor, Appointment, Review
 from django.db.models import Q, Avg
+from django.utils import timezone
+import datetime
 
 # Общее контекстное меню
 def navbar_context(request):
@@ -61,17 +63,33 @@ def doctor_list(request):
 # Расписание врача
 @login_required
 def doctor_schedule(request, pk):
-    doctor = Doctor.objects.annotate(avg_rating=Avg('appointment__review__rating')).get(pk=pk)
+    doctor = get_object_or_404(Doctor, pk=pk)
     appointments = Appointment.objects.filter(doctor=doctor)
-    form = AppointmentForm(initial={'doctor':doctor})
-    if request.method=='POST':
-        form = AppointmentForm(request.POST)
-        if form.is_valid():
-            appt = form.save(commit=False)
-            appt.patient = request.user.patient
-            appt.save()
-            return redirect('history')
-    return render(request,'clinic/doctor_schedule.html',{ 'doctor':doctor,'appointments':appointments,'form':form, 'avg_rating': doctor.avg_rating})
+    services = Service.objects.all()
+
+    upcoming = appointments.filter(date_time__gte=timezone.now()).order_by('date_time')
+
+    if request.method == 'POST':
+        # получаем данные из формы
+        service_id = request.POST.get('service')
+        date_time = request.POST.get('date_time')  # формат: YYYY-MM-DDTHH:MM
+        service = Service.objects.get(pk=service_id)
+        # преобразуем в datetime
+        dt = datetime.datetime.fromisoformat(date_time)
+        # создаём запись
+        Appointment.objects.create(
+            patient=request.user.patient,
+            doctor=doctor,
+            service=service,
+            date_time=dt
+        )
+        return redirect('history')
+    return render(request, 'clinic/doctor_schedule.html', {
+        'doctor': doctor,
+        'appointments': appointments,
+        'services': services,
+        'upcoming': upcoming,
+    })
 
 # История приёмов
 @login_required

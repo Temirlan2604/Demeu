@@ -1,9 +1,163 @@
 {% extends 'clinic/base.html' %}
+{% load static %}
+
 {% block content %}
-<h2>Расписание {{ doctor.user.last_name }}</h2>
-<p>Средний рейтинг: {{ avg_rating|floatformat:1 }} / 5</p>
-<form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-success">Записаться</button></form>
-<hr>
-<h4>Существующие записи</h4>
-<ul>{% for a in appointments %}<li>{{ a.date_time }}</li>{% empty %}<li>Нет записей</li>{% endfor %}</ul>
+  <h2>Dr. {{ doctor.user.first_name }} {{ doctor.user.patronymic }} {{ doctor.user.last_name }}</h2>
+  <p><strong>Специализация:</strong> {{ doctor.specialization }}</p>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <h4>Ваши будущие приёмы</h4>
+  {% if upcoming %}
+    <ul class="list-group mb-4">
+      {% for appt in upcoming %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          {{ appt.date_time|date:"d.m.Y H:i" }}
+          <span class="badge bg-secondary">{{ appt.service.name }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted mb-4">Нет запланированных приёмов.</p>
+  {% endif %}
+
+  <!-- Кнопка открытия модального окна -->
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#calendarModal">
+    Записаться на приём
+  </button>
+
+  <!-- Modal: календарь + форма -->
+  <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="calendarModalLabel">Выбор даты и времени</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <!-- Календарь -->
+            <div class="col-md-8">
+              <!-- задаём высоту: 70% от viewport или минимум 400px -->
+              <div id="modalCalendar" style="height:70vh; min-height:400px;"></div>
+            </div>
+            <!-- Форма -->
+            <div class="col-md-4">
+              <form id="modalBookingForm" method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                  <label for="svc" class="form-label">Услуга</label>
+                  <select name="service" id="svc" class="form-select" required>
+                    {% for svc in services %}
+                      <option value="{{ svc.pk }}">{{ svc.name }} — {{ svc.price }} ₸</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Выбранный слот</label>
+                  <input type="text" id="dt_display" class="form-control" readonly placeholder="Не выбрано">
+                  <input type="hidden" name="date_time" id="dt_iso">
+                </div>
+                <button type="submit" class="btn btn-success w-100" {% if not user.is_authenticated %}disabled{% endif %}>
+                  Подтвердить запись
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <!-- FullCalendar CSS/JS и локаль -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/ru.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const modal   = document.getElementById('calendarModal');
+      const calEl   = document.getElementById('modalCalendar');
+      const dtIso   = document.getElementById('dt_iso');
+      const dtDisp  = document.getElementById('dt_display');
+
+      const busy = [
+        {% for a in appointments %}
+        { start: '{{ a.date_time|date:"c" }}' },
+        {% endfor %}
+      ];
+
+      let initialized = false;
+      modal.addEventListener('shown.bs.modal', () => {
+        if (initialized) return;
+        initialized = true;
+
+        const today = new Date(); today.setHours(0,0,0,0);
+
+        const calendar = new FullCalendar.Calendar(calEl, {
+          locale: 'ru',
+          initialView: 'timeGridWeek',
+          initialDate: today,
+          allDaySlot: false,
+
+          // часовые слоты
+          slotDuration: '01:00:00',
+          slotLabelInterval: '01:00:00',
+          snapDuration: '01:00:00',
+          defaultTimedEventDuration: '01:00:00',
+
+          // показывать шкалу с 9 до 16
+          slotMinTime: '09:00:00',
+          slotMaxTime: '18:00:00',
+
+          // скрываем воскресенье, блокируем прошлое
+          hiddenDays: [0],
+          validRange: { start: today },
+
+          // часы работы: Пн–Пт 9–16, Сб 9–13
+          businessHours: [
+            { daysOfWeek: [1,2,3,4,5], startTime: '09:00', endTime: '18:00' },
+            { daysOfWeek: [6],           startTime: '09:00', endTime: '13:00' }
+          ],
+
+          // события, выбор
+          events: busy,
+          selectable: true,
+          selectOverlap: false,
+          selectConstraint: 'businessHours',
+          eventOverlap: false,
+
+          // красивая метка времени и позиционирование на 9:00
+          slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+          scrollTime: '09:00:00',
+
+          // растягиваем сетку на высоту контейнера
+          expandRows: true,
+          height: '70vh',
+          contentHeight: 'auto',
+
+          select: info => {
+            dtIso.value = info.startStr.slice(0,16);
+            const dt = new Date(info.start);
+            const opts = {
+              day:   '2-digit', month: '2-digit', year: 'numeric',
+              hour:  '2-digit', minute:'2-digit'
+            };
+            dtDisp.value = dt.toLocaleString('ru-RU', opts).replace(',', '');
+          }
+        });
+
+        calendar.render();
+      });
+    });
+  </script>
 {% endblock %}
