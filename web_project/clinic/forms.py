@@ -8,7 +8,7 @@ class RegistrationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ["phone", "last_name", "first_name", "patronymic", "password"]
+        fields = ("phone", "last_name", "first_name", "patronymic", "password")
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -35,7 +35,7 @@ class LoginForm(forms.Form):
 class AppointmentForm(forms.ModelForm):
     class Meta:
         model = Appointment
-        fields = ["doctor", "service", "date_time"]
+        fields = ("doctor", "service", "date_time")
         widgets = {"date_time": forms.DateTimeInput(attrs={"type": "datetime-local"})}
 
 
@@ -43,9 +43,20 @@ class ReviewForm(forms.ModelForm):
      class Meta:
          model = Review
          # теперь в форме только оценка и текстовые поля
-         fields = ['rating', 'pros', 'cons']
+         fields = ('rating', 'pros', 'cons')
          widgets = {
               'rating': forms.RadioSelect(),
               'pros': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Что понравилось?'}),
               'cons': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Что не понравилось?'}),
           }
+
+
+class PatientProfileForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ('first_name', 'last_name', 'phone')
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name':  forms.TextInput(attrs={'class': 'form-control'}),
+            'phone':      forms.TextInput(attrs={'class': 'form-control'}),
+        }

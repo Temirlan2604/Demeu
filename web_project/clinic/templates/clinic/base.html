@@ -11,20 +11,32 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   <!-- Свои стили -->
   <link href="{% static 'clinic/css/custom.css' %}" rel="stylesheet">
+  {% block extra_head %}{% endblock %}
   <title>Демеу Ер-тіс</title>
 </head>
 <body class="d-flex flex-column min-vh-100">
   <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container">
-      <a class="navbar-brand" href="{% url 'service_list' %}">Демеу Ер-тіс</a>
+      <!-- Бренд ведёт на home -->
+      <a class="navbar-brand" href="{% url 'home' %}">Демеу Ер-тіс</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="nav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><a class="nav-link" href="{% url 'service_list' %}">Услуги</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'doctor_list' %}">Врачи</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'history' %}">История</a></li>
+          <!-- Правильная ссылка на страницу услуг -->
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'service_list' %}">Услуги</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'doctor_list' %}">Врачи</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'history' %}">История</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'edit_profile' %}">Профиль</a>
+          </li>
         </ul>
         <div class="d-flex">
           {% if user.is_authenticated %}
@@ -37,6 +49,7 @@
       </div>
     </div>
   </nav>
+  
 
   <main class="container my-4 flex-fill">
     {% block content %}{% endblock %}
@@ -51,3 +64,20 @@
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>
+
+<style>
+  .star-half {
+    position: relative;
+    display: inline-block;
+    color: #ddd; /* цвет «пустой» звезды */
+  }
+  .star-half::before {
+    content: "★";
+    position: absolute;
+    left: 0;
+    width: 50%;
+    overflow: hidden;
+    color: #fadb14; /* цвет заполненной половинки */
+  }
+</style>
+

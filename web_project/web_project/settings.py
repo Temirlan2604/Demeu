@@ -136,3 +136,5 @@ LOGIN_REDIRECT_URL = '/'   # куда идти после успешного в�
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+TELEGRAM_BOT_TOKEN = '7466168204:AAFM13sgk4xr8RhmzzCeqTgSAO3FQtc9D3c'

@@ -1,0 +1,90 @@
+{% extends 'clinic/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+  <!-- Font Awesome для иконок соцсетей -->
+  <link 
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+    rel="stylesheet" 
+    integrity="sha512-pVnYgPx9e3LjZ+zsa3RqeHGIcIvxZL8SaJIs/VIVqVdPXge8GkVUvRsm4DtE6tvwFFGcOsKIpQVgJW3lhfIwVg==" 
+    crossorigin="anonymous" 
+    referrerpolicy="no-referrer" 
+  />
+{% endblock %}
+
+{% block content %}
+  <!-- Hero-блок -->
+  <div class="py-5 text-center bg-light rounded">
+    <h1 class="display-5">Демеу Ер-тіс</h1>
+    <p class="lead">Современная стоматологическая клиника, где глубоко заботятся о вашем здоровье и красоте улыбки.</p>
+  </div>
+  <!-- Полноширинное фото "Наша команда" -->
+  <div class="text-center">
+    <img 
+      src="/media/doctors_photos/наша%20команда.jpg" 
+      alt="Наша команда" 
+      class="img-fluid w-100"
+    >
+    <h2 class="mb-3">Наша команда</h2>
+  </div>
+
+  <div class="row mb-4">
+    <!-- О клинике -->
+    <div class="col-md-6">
+      <h2>О клинике</h2>
+      <p>
+        Мы предоставляем полный спектр стоматологических услуг: от профессиональной гигиены и отбеливания до протезирования и имплантации.
+        Высококвалифицированные врачи, современное оборудование и индивидуальный подход к каждому пациенту гарантируют
+        комфорт и отличный результат.
+      </p>
+    </div>
+
+    <!-- Контакты -->
+    <div class="col-md-6">
+      <h2>Контактная информация</h2>
+      <ul class="list-unstyled">
+        <li><strong>Адрес:</strong> г. Семей, ул. Уранхаева, д. 43а</li>
+        <li><strong>Телефон:</strong> +7 (700) 294-76-46</li>
+        <li>
+          <strong>Instagram:</strong>
+          <a href="https://instagram.com/demeu_stom" target="_blank" class="text-decoration-none">
+            <i class="fab fa-instagram"></i> @demeu_stom
+          </a>
+        </li>
+        <li>
+          <strong>Время работы:</strong><br>
+          Пн–Пт: 09:00–18:00<br>
+          Сб: 09:00–13:00<br>
+          Вс: выходной
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2GIS-карта -->
+  <div class="mb-5">
+    <h2 class="mb-3">Мы на карте</h2>
+    <div id="dg-map" style="width: 100%; height: 400px;"></div>
+  </div>
+
+  <div class="text-center mb-5">
+    <a href="{% url 'doctor_list' %}" class="btn btn-primary btn-lg">Записаться на приём</a>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ block.super }}
+  <script src="https://maps.api.2gis.ru/2.0/loader.js"></script>
+  <script>
+    DG.then(function() {
+      var center = [50.411974, 80.250755];
+      var markerPos = [50.412014, 80.250948];
+      var map = DG.map('dg-map', {
+        center: center,
+        zoom: 19.96
+      });
+      DG.marker(markerPos).addTo(map)
+        .bindPopup('Стоматология Демеу Ер-тіс');
+    });
+  </script>
+{% endblock %}
