@@ -36,15 +36,13 @@ class Command(BaseCommand):
     help = "Запускает Telegram-бота стоматологии"
 
     def handle(self, *args, **options):
-        # --- Настройка бота ---
         updater = Updater(
             settings.TELEGRAM_BOT_TOKEN,
             use_context=True,
-            request_kwargs={'read_timeout':20, 'connect_timeout':10}
+            request_kwargs={'read_timeout':20,'connect_timeout':10}
         )
         dp = updater.dispatcher
 
-        # клавиатуры
         login_menu = ReplyKeyboardMarkup(
             [['Войти', 'Зарегистрироваться']],
             resize_keyboard=True
@@ -55,29 +53,27 @@ class Command(BaseCommand):
             ['Профиль', 'Помощь']
         ], resize_keyboard=True)
 
-        # --- /start ---
         def start(update: Update, ctx: CallbackContext):
             update.message.reply_text(
                 "👋 Добро пожаловать! Выберите действие:",
                 reply_markup=login_menu
             )
 
-        # === ЛОГИН ===
+        # — ЛОГИН —
         def login_start(update: Update, ctx: CallbackContext):
             update.message.reply_text(
-                "🔑 Вход: пришлите телефон (кнопка или вручную):",
+                "🔑 Вход: пришлите телефон:",
                 reply_markup=ReplyKeyboardMarkup(
                     [[KeyboardButton("Поделиться номером", request_contact=True)]],
-                    one_time_keyboard=True,
-                    resize_keyboard=True
+                    one_time_keyboard=True, resize_keyboard=True
                 )
             )
             return ASK_LOGIN_PHONE
 
         def login_phone(update: Update, ctx: CallbackContext):
             phone = (update.effective_message.contact.phone_number
-                     if update.effective_message.contact else
-                     update.message.text.strip())
+                     if update.effective_message.contact
+                     else update.message.text.strip())
             ctx.user_data['login_phone'] = phone
             update.message.reply_text("Введите пароль:", reply_markup=ReplyKeyboardRemove())
             return ASK_LOGIN_PASS
@@ -89,12 +85,8 @@ class Command(BaseCommand):
             try:
                 user = User.objects.get(phone=ctx.user_data['login_phone'])
             except User.DoesNotExist:
-                update.message.reply_text(
-                    "❌ Пользователь не найден. Сначала зарегистрируйтесь.",
-                    reply_markup=login_menu
-                )
+                update.message.reply_text("❌ Пользователь не найден.", reply_markup=login_menu)
                 return ConversationHandler.END
-
             if not user.check_password(pw):
                 update.message.reply_text("❌ Неправильный пароль.", reply_markup=login_menu)
                 return ConversationHandler.END
@@ -103,28 +95,25 @@ class Command(BaseCommand):
                 chat_id=str(update.effective_chat.id),
                 defaults={'user': user}
             )
-            update.message.reply_text(
-                f"✅ Вы вошли как {user.first_name} {user.last_name}",
-                reply_markup=auth_menu
-            )
+            update.message.reply_text(f"✅ Вы вошли как {user.first_name} {user.last_name}",
+                                      reply_markup=auth_menu)
             return ConversationHandler.END
 
-        # === РЕГИСТРАЦИЯ ===
+        # — РЕГИСТРАЦИЯ —
         def register_start(update: Update, ctx: CallbackContext):
             update.message.reply_text(
                 "🖊 Регистрация: пришлите телефон:",
                 reply_markup=ReplyKeyboardMarkup(
                     [[KeyboardButton("Поделиться номером", request_contact=True)]],
-                    one_time_keyboard=True,
-                    resize_keyboard=True
+                    one_time_keyboard=True, resize_keyboard=True
                 )
             )
             return ASK_PHONE
 
         def register_phone(update: Update, ctx: CallbackContext):
             phone = (update.effective_message.contact.phone_number
-                     if update.effective_message.contact else
-                     update.message.text.strip())
+                     if update.effective_message.contact
+                     else update.message.text.strip())
             ctx.user_data['reg_phone'] = phone
             update.message.reply_text("Введите имя:", reply_markup=ReplyKeyboardRemove())
             return ASK_FIRST
@@ -150,17 +139,11 @@ class Command(BaseCommand):
                 last_name=ctx.user_data['reg_last']
             )
             Patient.objects.create(user=user)
-            TelegramProfile.objects.create(
-                chat_id=str(update.effective_chat.id),
-                user=user
-            )
-            update.message.reply_text(
-                "✅ Регистрация успешна! Теперь вы – пациент.",
-                reply_markup=auth_menu
-            )
+            TelegramProfile.objects.create(chat_id=str(update.effective_chat.id), user=user)
+            update.message.reply_text("✅ Вы зарегистрированы!", reply_markup=auth_menu)
             return ConversationHandler.END
 
-        # === ОБЩИЕ КОМАНДЫ ===
+        # — ОБЩИЕ КОМАНДЫ —
         def services_cmd(update: Update, ctx: CallbackContext):
             items = Service.objects.all()
             text = "\n".join(f"– {s.name} ({s.price}₸)" for s in items)
@@ -168,74 +151,75 @@ class Command(BaseCommand):
 
         def doctors_cmd(update: Update, ctx: CallbackContext):
             docs = Doctor.objects.select_related('user').all()
-            lines = [f"{d.pk}. Dr. {d.user.last_name} ({d.specialization})" for d in docs]
+            lines = [f"{d.user.first_name} {d.user.patronymic} — {d.specialization}" for d in docs]
             try:
-                update.message.reply_text(
-                    "👩‍⚕️ Наши врачи:\n" + "\n".join(lines),
-                    reply_markup=auth_menu
-                )
+                update.message.reply_text("👩‍⚕️ Наши врачи:\n" + "\n".join(lines), reply_markup=auth_menu)
             except TimedOut:
-                update.message.reply_text("Сервер занят, попробуйте позже.", reply_markup=auth_menu)
+                update.message.reply_text("Сервер занят.", reply_markup=auth_menu)
 
-        # === ЗАПИСЬ (разговорный flow) ===
+        # — ЗАПИСЬ (flow) —
         def book_start(update: Update, ctx: CallbackContext):
             try:
                 tp = TelegramProfile.objects.get(chat_id=str(update.effective_chat.id))
             except TelegramProfile.DoesNotExist:
-                update.message.reply_text("Сначала зарегистрируйтесь.", reply_markup=login_menu)
+                update.message.reply_text("Сначала войдите или зарегистрируйтесь.", reply_markup=login_menu)
                 return ConversationHandler.END
 
             ctx.user_data['tp'] = tp
             docs = Doctor.objects.select_related('user').all()
-            kb = [[str(d.pk)] for d in docs]
-            update.message.reply_text(
-                "Выберите врача (номер):",
-                reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True)
-            )
+            # клавиши: имена врачей
+            doctor_map = {}
+            kb = []
+            for d in docs:
+                name = f"{d.user.first_name} {d.user.patronymic}"
+                doctor_map[name] = d.pk
+                kb.append([name])
+            ctx.user_data['doctor_map'] = doctor_map
+            update.message.reply_text("Выберите врача:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
             return ASK_DOCTOR
 
         def book_doctor(update: Update, ctx: CallbackContext):
-            ctx.user_data['doctor_pk'] = int(update.message.text.strip())
+            sel = update.message.text.strip()
+            doctor_pk = ctx.user_data['doctor_map'].get(sel)
+            if not doctor_pk:
+                update.message.reply_text("Нажмите кнопку с именем врача.")
+                return ASK_DOCTOR
+            ctx.user_data['doctor_pk'] = doctor_pk
+
             svcs = Service.objects.all()
-            kb = [[str(s.pk)] for s in svcs]
-            update.message.reply_text(
-                "Выберите услугу (номер):",
-                reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True)
-            )
+            svc_map = {}
+            kb = []
+            for s in svcs:
+                svc_map[s.name] = s.pk
+                kb.append([s.name])
+            ctx.user_data['svc_map'] = svc_map
+            update.message.reply_text("Выберите услугу:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
             return ASK_SERVICE
 
         def book_service(update: Update, ctx: CallbackContext):
-            ctx.user_data['service_pk'] = int(update.message.text.strip())
+            sel = update.message.text.strip()
+            svc_pk = ctx.user_data['svc_map'].get(sel)
+            if not svc_pk:
+                update.message.reply_text("Нажмите кнопку с названием услуги.")
+                return ASK_SERVICE
+            ctx.user_data['service_pk'] = svc_pk
+
             today = datetime.date.today()
             doctor_pk = ctx.user_data['doctor_pk']
-
-            # собираем даты следующей недели, исключая полностью занятые
             dates = []
             for i in range(7):
                 d = today + datetime.timedelta(days=i)
                 if d.weekday() == 6:
-                    continue  # воскресенье
-                start, end = (9, 17) if d.weekday() < 5 else (9, 13)
-                total_slots = end - start
-                busy_count = Appointment.objects.filter(
-                    doctor_id=doctor_pk,
-                    date_time__date=d
-                ).count()
-                if busy_count < total_slots:
+                    continue
+                start, end = (9,17) if d.weekday()<5 else (9,13)
+                if Appointment.objects.filter(doctor_id=doctor_pk, date_time__date=d).count() < (end-start):
                     dates.append(d)
-
             if not dates:
-                update.message.reply_text(
-                    "Увы, на неделю вперед нет свободных приёмов у этого врача. Попробуйте позже.",
-                    reply_markup=auth_menu
-                )
+                update.message.reply_text("Нет свободных приёмов на неделю.", reply_markup=auth_menu)
                 return ConversationHandler.END
 
             kb = [[d.strftime("%d.%m.%Y")] for d in dates]
-            update.message.reply_text(
-                "Выберите дату:",
-                reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
-            )
+            update.message.reply_text("Выберите дату:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
             return ASK_DATE
 
         def book_date(update: Update, ctx: CallbackContext):
@@ -243,40 +227,27 @@ class Command(BaseCommand):
             try:
                 date = datetime.datetime.strptime(ds, "%d.%m.%Y").date()
             except ValueError:
-                update.message.reply_text("Неверная дата, выберите кнопкой.", reply_markup=auth_menu)
+                update.message.reply_text("Нажмите кнопку с датой.", reply_markup=auth_menu)
                 return ASK_DATE
             ctx.user_data['date'] = ds
-            doctor_pk = ctx.user_data['doctor_pk']
-
             wd = date.weekday()
-            start, end = (9, 17) if wd < 5 else (9, 13)
+            start, end = (9,17) if wd<5 else (9,13)
 
-            # исключаем занятые часы
-            busy_hours = [
+            busy = [
                 timezone.localtime(a.date_time).hour
                 for a in Appointment.objects.filter(
-                    doctor_id=doctor_pk,
+                    doctor_id=ctx.user_data['doctor_pk'],
                     date_time__date=date
                 )
             ]
-            slots = [
-                f"{h:02d}:00"
-                for h in range(start, end)
-                if h not in busy_hours
-            ]
-
+            slots = [f"{h:02d}:00" for h in range(start,end) if h not in busy]
             if not slots:
-                update.message.reply_text(
-                    "На выбранную дату все слоты заняты, выберите другую дату.",
-                    reply_markup=auth_menu
-                )
+                update.message.reply_text("Все слоты заняты.", reply_markup=auth_menu)
                 return ASK_DATE
 
             kb = [[t] for t in slots]
-            update.message.reply_text(
-                f"Выберите время для {ds}:",
-                reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
-            )
+            update.message.reply_text(f"Выберите время для {ds}:",
+                                      reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
             return ASK_TIME
 
         def book_time(update: Update, ctx: CallbackContext):
@@ -285,37 +256,34 @@ class Command(BaseCommand):
             try:
                 dt_naive = datetime.datetime.strptime(f"{ds} {ts}", "%d.%m.%Y %H:%M")
             except ValueError:
-                update.message.reply_text("Неверное время, выберите заново.", reply_markup=auth_menu)
+                update.message.reply_text("Нажмите кнопку с временем.", reply_markup=auth_menu)
                 return ASK_TIME
 
             dt = timezone.make_aware(dt_naive)
-            tp  = ctx.user_data['tp']
-            doc = Doctor.objects.get(pk=ctx.user_data['doctor_pk'])
-            svc = Service.objects.get(pk=ctx.user_data['service_pk'])
             Appointment.objects.create(
-                patient=tp.user.patient,
-                doctor=doc,
-                service=svc,
+                patient=ctx.user_data['tp'].user.patient,
+                doctor=Doctor.objects.get(pk=ctx.user_data['doctor_pk']),
+                service=Service.objects.get(pk=ctx.user_data['service_pk']),
                 date_time=dt
             )
             update.message.reply_text("✅ Запись создана!", reply_markup=auth_menu)
             return ConversationHandler.END
 
-        # === МОИ ЗАПИСИ И ОТМЕНА ===
+        # — Мои записи и отмена —
         def myappointments_cmd(update: Update, ctx: CallbackContext):
             try:
                 tp = TelegramProfile.objects.get(chat_id=str(update.effective_chat.id))
             except TelegramProfile.DoesNotExist:
-                return update.message.reply_text("Сначала зарегистрируйтесь.", reply_markup=login_menu)
+                return update.message.reply_text("Сначала войдите.", reply_markup=login_menu)
 
             appts = Appointment.objects.filter(patient=tp.user.patient)
             if not appts:
                 return update.message.reply_text("У вас нет записей.", reply_markup=auth_menu)
 
-            lines = []
-            for a in appts:
-                local_dt = timezone.localtime(a.date_time)
-                lines.append(f"{a.pk}. {a.service.name} — {local_dt.strftime('%d.%m.%Y %H:%M')}")
+            lines = [
+                f"{a.pk}. {a.service.name} — {timezone.localtime(a.date_time).strftime('%d.%m.%Y %H:%M')}"
+                for a in appts
+            ]
             update.message.reply_text(
                 "Ваши записи:\n" + "\n".join(lines) + "\nОтменить запись: Отменить запись <номер>",
                 reply_markup=auth_menu
@@ -326,18 +294,12 @@ class Command(BaseCommand):
             if len(parts) != 2 or not parts[1].isdigit():
                 return update.message.reply_text("Используйте: Отменить запись <номер>", reply_markup=auth_menu)
             pk = int(parts[1])
-            try:
-                tp = TelegramProfile.objects.get(chat_id=str(update.effective_chat.id))
-                Appointment.objects.get(pk=pk, patient=tp.user.patient).delete()
-                update.message.reply_text("❌ Запись отменена.", reply_markup=auth_menu)
-            except Appointment.DoesNotExist:
-                update.message.reply_text("Не нашли запись.", reply_markup=auth_menu)
+            tp = TelegramProfile.objects.get(chat_id=str(update.effective_chat.id))
+            Appointment.objects.filter(pk=pk, patient=tp.user.patient).delete()
+            update.message.reply_text("❌ Запись отменена.", reply_markup=auth_menu)
 
         def profile_cmd(update: Update, ctx: CallbackContext):
-            try:
-                tp = TelegramProfile.objects.get(chat_id=str(update.effective_chat.id))
-            except TelegramProfile.DoesNotExist:
-                return update.message.reply_text("Сначала зарегистрируйтесь.", reply_markup=login_menu)
+            tp = TelegramProfile.objects.get(chat_id=str(update.effective_chat.id))
             u = tp.user
             update.message.reply_text(
                 f"👤 Профиль:\nИмя: {u.first_name}\nФамилия: {u.last_name}\nТелефон: {u.phone}",
@@ -351,53 +313,42 @@ class Command(BaseCommand):
                 reply_markup=auth_menu
             )
 
-        # --- ConversationHandler для логина ---
+        # — ConversationHandler для логина/регистрации/записи —
         conv_login = ConversationHandler(
-            entry_points=[
-                CommandHandler('login', login_start),
-                MessageHandler(Filters.regex('^Войти$'), login_start),
-            ],
+            entry_points=[CommandHandler('login', login_start), MessageHandler(Filters.regex('^Войти$'), login_start)],
             states={
                 ASK_LOGIN_PHONE: [MessageHandler(Filters.contact | (Filters.text & ~Filters.command), login_phone)],
                 ASK_LOGIN_PASS:  [MessageHandler(Filters.text & ~Filters.command, login_pass)],
             },
-            fallbacks=[],
+            fallbacks=[]
         )
         dp.add_handler(conv_login)
 
-        # --- ConversationHandler для регистрации ---
         conv_register = ConversationHandler(
-            entry_points=[
-                CommandHandler('register', register_start),
-                MessageHandler(Filters.regex('^Зарегистрироваться$'), register_start),
-            ],
+            entry_points=[CommandHandler('register', register_start), MessageHandler(Filters.regex('^Зарегистрироваться$'), register_start)],
             states={
-                ASK_PHONE:      [MessageHandler(Filters.contact | (Filters.text & ~Filters.command), register_phone)],
-                ASK_FIRST:      [MessageHandler(Filters.text & ~Filters.command, register_first)],
-                ASK_LAST:       [MessageHandler(Filters.text & ~Filters.command, register_last)],
-                ASK_REG_PASS:   [MessageHandler(Filters.text & ~Filters.command, register_pass)],
+                ASK_PHONE:    [MessageHandler(Filters.contact | (Filters.text & ~Filters.command), register_phone)],
+                ASK_FIRST:    [MessageHandler(Filters.text & ~Filters.command, register_first)],
+                ASK_LAST:     [MessageHandler(Filters.text & ~Filters.command, register_last)],
+                ASK_REG_PASS: [MessageHandler(Filters.text & ~Filters.command, register_pass)],
             },
-            fallbacks=[],
+            fallbacks=[]
         )
         dp.add_handler(conv_register)
 
-        # --- ConversationHandler для записи ---
         conv_book = ConversationHandler(
-            entry_points=[
-                MessageHandler(Filters.regex('^Записаться$'), book_start),
-                CommandHandler('book', book_start),
-            ],
+            entry_points=[MessageHandler(Filters.regex('^Записаться$'), book_start), CommandHandler('book', book_start)],
             states={
                 ASK_DOCTOR:  [MessageHandler(Filters.text & ~Filters.command, book_doctor)],
                 ASK_SERVICE: [MessageHandler(Filters.text & ~Filters.command, book_service)],
                 ASK_DATE:    [MessageHandler(Filters.text & ~Filters.command, book_date)],
                 ASK_TIME:    [MessageHandler(Filters.text & ~Filters.command, book_time)],
             },
-            fallbacks=[],
+            fallbacks=[]
         )
         dp.add_handler(conv_book)
 
-        # --- Простые кнопки после авторизации ---
+        # простые кнопки после авторизации
         dp.add_handler(MessageHandler(Filters.regex('^Услуги$'), services_cmd))
         dp.add_handler(MessageHandler(Filters.regex('^Врачи$'), doctors_cmd))
         dp.add_handler(MessageHandler(Filters.regex('^Мои записи$'), myappointments_cmd))
@@ -405,30 +356,16 @@ class Command(BaseCommand):
         dp.add_handler(MessageHandler(Filters.regex('^Профиль$'), profile_cmd))
         dp.add_handler(MessageHandler(Filters.regex('^Помощь$'), help_cmd))
 
-        # --- Одиночные команды на всякий случай ---
+        # одиночные команды
         dp.add_handler(CommandHandler("start", start))
         dp.add_handler(CommandHandler("help", help_cmd))
-        dp.add_handler(CommandHandler("services", services_cmd))
-        dp.add_handler(CommandHandler("doctors", doctors_cmd))
-        dp.add_handler(CommandHandler("myappointments", myappointments_cmd))
-        dp.add_handler(CommandHandler("cancel", cancel_cmd))
-        dp.add_handler(CommandHandler("profile", profile_cmd))
 
         # глобальный обработчик ошибок
         import logging
         from telegram.error import NetworkError, TimedOut as PTBTimeout
         logger = logging.getLogger(__name__)
+        dp.add_error_handler(lambda u,c: logger.warning(c.error) if isinstance(c.error,(NetworkError,PTBTimeout)) else logger.exception(c.error))
 
-        def error_handler(update, context):
-            err = context.error
-            if isinstance(err, (NetworkError, PTBTimeout)):
-                logger.warning(f"Network issue: {err}")
-            else:
-                logger.exception("Unexpected error:")
-
-        dp.add_error_handler(error_handler)
-
-        # запускаем
         self.stdout.write(self.style.SUCCESS("Бот запущен, polling..."))
         updater.start_polling()
         updater.idle()
