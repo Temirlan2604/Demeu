@@ -170,8 +170,10 @@ class Command(BaseCommand):
             docs = Doctor.objects.select_related('user').all()
             lines = [f"{d.pk}. Dr. {d.user.last_name} ({d.specialization})" for d in docs]
             try:
-                update.message.reply_text("👩‍⚕️ Наши врачи:\n" + "\n".join(lines),
-                                          reply_markup=auth_menu)
+                update.message.reply_text(
+                    "👩‍⚕️ Наши врачи:\n" + "\n".join(lines),
+                    reply_markup=auth_menu
+                )
             except TimedOut:
                 update.message.reply_text("Сервер занят, попробуйте позже.", reply_markup=auth_menu)
 
@@ -186,29 +188,54 @@ class Command(BaseCommand):
             ctx.user_data['tp'] = tp
             docs = Doctor.objects.select_related('user').all()
             kb = [[str(d.pk)] for d in docs]
-            update.message.reply_text("Выберите врача (номер):",
-                                      reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+            update.message.reply_text(
+                "Выберите врача (номер):",
+                reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True)
+            )
             return ASK_DOCTOR
 
         def book_doctor(update: Update, ctx: CallbackContext):
             ctx.user_data['doctor_pk'] = int(update.message.text.strip())
             svcs = Service.objects.all()
             kb = [[str(s.pk)] for s in svcs]
-            update.message.reply_text("Выберите услугу (номер):",
-                                      reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+            update.message.reply_text(
+                "Выберите услугу (номер):",
+                reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True)
+            )
             return ASK_SERVICE
 
         def book_service(update: Update, ctx: CallbackContext):
             ctx.user_data['service_pk'] = int(update.message.text.strip())
             today = datetime.date.today()
-            dates = [
-                today + datetime.timedelta(days=i)
-                for i in range(7)
-                if (today + datetime.timedelta(days=i)).weekday() != 6
-            ]
+            doctor_pk = ctx.user_data['doctor_pk']
+
+            # собираем даты следующей недели, исключая полностью занятые
+            dates = []
+            for i in range(7):
+                d = today + datetime.timedelta(days=i)
+                if d.weekday() == 6:
+                    continue  # воскресенье
+                start, end = (9, 17) if d.weekday() < 5 else (9, 13)
+                total_slots = end - start
+                busy_count = Appointment.objects.filter(
+                    doctor_id=doctor_pk,
+                    date_time__date=d
+                ).count()
+                if busy_count < total_slots:
+                    dates.append(d)
+
+            if not dates:
+                update.message.reply_text(
+                    "Увы, на неделю вперед нет свободных приёмов у этого врача. Попробуйте позже.",
+                    reply_markup=auth_menu
+                )
+                return ConversationHandler.END
+
             kb = [[d.strftime("%d.%m.%Y")] for d in dates]
-            update.message.reply_text("Выберите дату:",
-                                      reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True))
+            update.message.reply_text(
+                "Выберите дату:",
+                reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
+            )
             return ASK_DATE
 
         def book_date(update: Update, ctx: CallbackContext):
@@ -219,13 +246,37 @@ class Command(BaseCommand):
                 update.message.reply_text("Неверная дата, выберите кнопкой.", reply_markup=auth_menu)
                 return ASK_DATE
             ctx.user_data['date'] = ds
+            doctor_pk = ctx.user_data['doctor_pk']
 
             wd = date.weekday()
             start, end = (9, 17) if wd < 5 else (9, 13)
-            slots = [f"{h:02d}:00" for h in range(start, end)]
+
+            # исключаем занятые часы
+            busy_hours = [
+                timezone.localtime(a.date_time).hour
+                for a in Appointment.objects.filter(
+                    doctor_id=doctor_pk,
+                    date_time__date=date
+                )
+            ]
+            slots = [
+                f"{h:02d}:00"
+                for h in range(start, end)
+                if h not in busy_hours
+            ]
+
+            if not slots:
+                update.message.reply_text(
+                    "На выбранную дату все слоты заняты, выберите другую дату.",
+                    reply_markup=auth_menu
+                )
+                return ASK_DATE
+
             kb = [[t] for t in slots]
-            update.message.reply_text(f"Выберите время для {ds}:",
-                                      reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True))
+            update.message.reply_text(
+                f"Выберите время для {ds}:",
+                reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
+            )
             return ASK_TIME
 
         def book_time(update: Update, ctx: CallbackContext):
@@ -234,7 +285,7 @@ class Command(BaseCommand):
             try:
                 dt_naive = datetime.datetime.strptime(f"{ds} {ts}", "%d.%m.%Y %H:%M")
             except ValueError:
-                update.message.reply_text("Неверное время, выберите кнопку заново.", reply_markup=auth_menu)
+                update.message.reply_text("Неверное время, выберите заново.", reply_markup=auth_menu)
                 return ASK_TIME
 
             dt = timezone.make_aware(dt_naive)
@@ -250,6 +301,7 @@ class Command(BaseCommand):
             update.message.reply_text("✅ Запись создана!", reply_markup=auth_menu)
             return ConversationHandler.END
 
+        # === МОИ ЗАПИСИ И ОТМЕНА ===
         def myappointments_cmd(update: Update, ctx: CallbackContext):
             try:
                 tp = TelegramProfile.objects.get(chat_id=str(update.effective_chat.id))
@@ -265,7 +317,7 @@ class Command(BaseCommand):
                 local_dt = timezone.localtime(a.date_time)
                 lines.append(f"{a.pk}. {a.service.name} — {local_dt.strftime('%d.%m.%Y %H:%M')}")
             update.message.reply_text(
-                "Ваши записи:\n" + "\n".join(lines) + "\nЧтобы отменить: Отменить запись <номер>",
+                "Ваши записи:\n" + "\n".join(lines) + "\nОтменить запись: Отменить запись <номер>",
                 reply_markup=auth_menu
             )
 
@@ -299,7 +351,7 @@ class Command(BaseCommand):
                 reply_markup=auth_menu
             )
 
-        # === ConversationHandler для логина ===
+        # --- ConversationHandler для логина ---
         conv_login = ConversationHandler(
             entry_points=[
                 CommandHandler('login', login_start),
@@ -313,7 +365,7 @@ class Command(BaseCommand):
         )
         dp.add_handler(conv_login)
 
-        # === ConversationHandler для регистрации ===
+        # --- ConversationHandler для регистрации ---
         conv_register = ConversationHandler(
             entry_points=[
                 CommandHandler('register', register_start),
@@ -329,7 +381,7 @@ class Command(BaseCommand):
         )
         dp.add_handler(conv_register)
 
-        # === ConversationHandler для записи ===
+        # --- ConversationHandler для записи ---
         conv_book = ConversationHandler(
             entry_points=[
                 MessageHandler(Filters.regex('^Записаться$'), book_start),
@@ -345,7 +397,7 @@ class Command(BaseCommand):
         )
         dp.add_handler(conv_book)
 
-        # === Хендлеры простых кнопок после авторизации ===
+        # --- Простые кнопки после авторизации ---
         dp.add_handler(MessageHandler(Filters.regex('^Услуги$'), services_cmd))
         dp.add_handler(MessageHandler(Filters.regex('^Врачи$'), doctors_cmd))
         dp.add_handler(MessageHandler(Filters.regex('^Мои записи$'), myappointments_cmd))
@@ -353,7 +405,7 @@ class Command(BaseCommand):
         dp.add_handler(MessageHandler(Filters.regex('^Профиль$'), profile_cmd))
         dp.add_handler(MessageHandler(Filters.regex('^Помощь$'), help_cmd))
 
-        # === Одиночные команды на всякий случай ===
+        # --- Одиночные команды на всякий случай ---
         dp.add_handler(CommandHandler("start", start))
         dp.add_handler(CommandHandler("help", help_cmd))
         dp.add_handler(CommandHandler("services", services_cmd))
