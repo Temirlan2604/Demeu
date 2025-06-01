@@ -2,9 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from .forms import RegistrationForm, LoginForm, AppointmentForm, ReviewForm, PatientProfileForm
-from .models import Service, Doctor, Appointment, Review
+from .models import Service, Doctor, Appointment, Review , ServiceCategory
 from django.contrib import messages
-from django.db.models import Q, Avg
+from django.db.models import Q, Avg, Prefetch
 from django.utils import timezone
 import datetime
 
@@ -47,15 +47,44 @@ def user_logout(request):
     return redirect("login")
 
 
-# Список услуг
+# Список услуг: сначала – без категории, потом – по категориям
 @login_required
 def service_list(request):
-    q = request.GET.get("q", "")
+    q = request.GET.get("q", "").strip()
+
     if q:
-        services = Service.objects.filter(name__icontains=q)
+        # Если есть поисковый запрос, отбираем услуги без категории и в категориях, где имя услуги содержит q
+        uncategorized = (
+            Service.objects
+            .filter(category__isnull=True, name__icontains=q)
+            .order_by("name")
+        )
+        categories = (
+            ServiceCategory.objects
+            .filter(services__name__icontains=q)
+            .distinct()
+            .prefetch_related(
+                Prefetch(
+                    "services",
+                    queryset=Service.objects.filter(name__icontains=q).order_by("name"),
+                )
+            )
+            .order_by("name")
+        )
     else:
-        services = Service.objects.all()
-    return render(request, "clinic/service_list.html", {"services": services, "q": q})
+        # Без поиска: грузим все услуги без категории и все категории с их услугами
+        uncategorized = Service.objects.filter(category__isnull=True).order_by("name")
+        categories = (
+            ServiceCategory.objects
+            .prefetch_related("services")
+            .order_by("name")
+        )
+
+    return render(request, "clinic/service_list.html", {
+        "uncategorized": uncategorized,
+        "categories": categories,
+        "q": q,
+    })
 
 
 # Список врачей

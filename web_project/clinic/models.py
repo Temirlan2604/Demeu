@@ -72,16 +72,47 @@ class Patient(models.Model):
         verbose_name_plural = "Пациенты"
 
 
-class Service(models.Model):
-    name = models.CharField(max_length=100)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+class ServiceCategory(models.Model):
+    """
+    Категория для услуг: например, «Удаление зуба», «Лечение кариеса» и т. д.
+    """
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Категория услуги"
+    )
+
+    class Meta:
+        verbose_name = "Категория услуги"
+        verbose_name_plural = "Категории услуг"
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
 
+
+class Service(models.Model):
+    """
+    Модель услуги, привязанная (необязательно) к категории.
+    """
+    category = models.ForeignKey(
+        ServiceCategory,
+        verbose_name="Категория",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="services"
+    )
+    name = models.CharField("Название услуги", max_length=255)
+    price = models.DecimalField("Цена", max_digits=10, decimal_places=2)
+
     class Meta:
         verbose_name = "Услуга"
         verbose_name_plural = "Услуги"
+        ordering = ["category__name", "name"]
+
+    def __str__(self):
+        return self.name
 
 
 class Appointment(models.Model):

@@ -1,30 +1,68 @@
 {% extends 'clinic/base.html' %}
+
 {% block content %}
-<h2>Услуги</h2>
-<!-- Поле для живой фильтрации -->
-<input type="text" id="service-filter" class="form-control mb-3" placeholder="Поиск услуги...">
-<div class="row">
-  {% for s in services %}
-    <div class="col-md-4 service-item" data-name="{{ s.name }}">
-      <div class="card mb-3">
-        <div class="card-body">
-          <h5>{{ s.name }}</h5>
-          <p>{{ s.price }} ₸</p>
-        </div>
+  <div class="container">
+    <h2 class="mb-4">Услуги</h2>
+
+    <!-- Форма поиска (при желании можно и без AJAX, т.к. у нас есть live-filter JS снизу) -->
+    <input
+      type="text"
+      id="service-filter"
+      class="form-control mb-3"
+      placeholder="Поиск услуги..."
+      value="{{ q }}"
+    >
+
+    {# 1. Сначала выводим услуги без категории #}
+    {% if uncategorized %}
+      <div class="row mb-4">
+        {% for s in uncategorized %}
+          <div class="col-md-4 service-item" data-name="{{ s.name }}">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5>{{ s.name }}</h5>
+                <p>{{ s.price }} ₸</p>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
       </div>
-    </div>
-  {% empty %}
-    <p>Услуг нет.</p>
-  {% endfor %}
-</div>
-<script>
-// Живая фильтрация услуг
-document.getElementById('service-filter').addEventListener('input', function() {
-  const q = this.value.trim().toLowerCase();
-  document.querySelectorAll('.service-item').forEach(el => {
-    const name = el.dataset.name.toLowerCase();
-    el.style.display = name.includes(q) ? '' : 'none';
-  });
-});
-</script>
+    {% endif %}
+
+    {# 2. Потом выводим категории с их услугами #}
+    {% for category in categories %}
+      <h3 class="mt-4">{{ category.name }}</h3>
+      <div class="row mb-4">
+        {% for s in category.services.all %}
+          <div class="col-md-4 service-item" data-name="{{ s.name }}">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5>{{ s.name }}</h5>
+                <p>{{ s.price }} ₸</p>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="col-12">
+            <p class="text-muted">В данной категории пока услуг нет.</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% empty %}
+      {% if not uncategorized %}
+        <p class="text-muted">Услуг нет.</p>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <script>
+    // Живая фильтрация услуг (по тексту в имени)
+    document.getElementById('service-filter').addEventListener('input', function() {
+      const q = this.value.trim().toLowerCase();
+      document.querySelectorAll('.service-item').forEach(el => {
+        const name = el.dataset.name.toLowerCase();
+        el.style.display = name.includes(q) ? '' : 'none';
+      });
+    });
+  </script>
 {% endblock %}

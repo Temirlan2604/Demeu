@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Doctor, Patient, Service, Appointment, Review
+from .models import CustomUser, Doctor, Patient, Service, Appointment, ServiceCategory, Review 
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
@@ -23,6 +23,25 @@ class CustomUserAdmin(UserAdmin):
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Doctor)
 admin.site.register(Patient)
-admin.site.register(Service)
+@admin.register(ServiceCategory)
+class ServiceCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+    ordering = ("name",)
+
+
+@admin.register(Service)
+class ServiceAdmin(admin.ModelAdmin):
+    list_display = ("name", "category", "price")
+    list_filter = ("category",)
+    search_fields = ("name",)
+    ordering = ("category__name", "name")
+    fields = ("category", "name", "price")
+
+    # Делает колонку «Категория» редактируемой прямо из списка
+    list_editable = ("category",)
+
+    # Чтобы список оставался читабельным, переносим кнопку «Сохранить» ниже:
+    list_display_links = ("name",)
 admin.site.register(Appointment)
 admin.site.register(Review)
