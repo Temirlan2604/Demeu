@@ -1,4 +1,118 @@
-body { background: #f7f7f7; }
-.navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.card { margin-bottom: 1rem; }
-footer { text-align: center; padding: 1rem 0; margin-top: 2rem; color: #666; }
+/* clinic/static/clinic/css/custom.css */
+
+/* 0. Сбросим стандартный отступ навбара и зададим ему плавное изменение padding и фона */
+#mainNavbar {
+  padding: 1rem 1rem;
+  background-color: rgba(255, 255, 255, 1);
+  transition: padding 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+  z-index: 1000;
+}
+
+/* При прокрутке более 50px: navbar “сжимается” и меняет фон/тень */
+#mainNavbar.scrolled {
+  padding: 0.3rem 1rem;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 1. Плавный переход для ссылок, кнопок и карточек (оставляем, как было) */
+a,
+.btn,
+.card {
+  transition: all 0.3s ease;
+}
+
+/* 2. Эффект наведения на карточки услуг/врачей (оставляем, как было) */
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* 3. Fade-in для главных секций (при загрузке) (оставляем) */
+.fade-in {
+  opacity: 0;
+  animation: fadeInUp 0.8s forwards;
+}
+
+/* Ключевые кадры для fadeInUp (оставляем) */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 4. Плавный скролл для якорных ссылок (оставляем) */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 5. Стили для navbar: добавляем тень при прокрутке (уже переопределено через #mainNavbar.scrolled) */
+
+/* 6. Анимация для заголовков секций (оставляем) */
+.section-title {
+  font-weight: 600;
+  position: relative;
+}
+.section-title::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: #0d6efd;
+  margin-top: 8px;
+  transition: width 0.4s ease;
+}
+.section-title:hover::after {
+  width: 100px;
+}
+
+/* 7. Стили для навигационных ссылок: underline и смена цвета при hover */
+.navbar-nav .nav-link {
+  position: relative;
+  color: #333; /* базовый цвет текста */
+  transition: color 0.3s ease;
+}
+
+.navbar-nav .nav-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -3px; /* чуть ниже текста */
+  left: 0;
+  background-color: #0d6efd;
+  transition: width 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover::after {
+  width: 100%;
+}
+
+.navbar-nav .nav-link:hover {
+  color: #0d6efd;
+}
+
+/* 8. Эффект затемнения для кнопок в navbar при hover */
+#mainNavbar .btn:hover {
+  filter: brightness(0.9);
+}
+
+/* 9. Класс для половинчатой звезды (оставляем, если нужен) */
+.star-half {
+  position: relative;
+  display: inline-block;
+  color: #ddd; /* цвет «пустой» звезды */
+}
+.star-half::before {
+  content: "★";
+  position: absolute;
+  left: 0;
+  width: 50%;
+  overflow: hidden;
+  color: #fadb14; /* цвет заполненной половинки */
+}

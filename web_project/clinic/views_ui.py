@@ -101,7 +101,9 @@ def doctor_schedule(request, pk):
         + ["empty"] * empty_stars
     )
 
+   # Отфильтруем будущие приёмы только для текущего пациента:
     upcoming = appointments.filter(
+        patient=request.user.patient,
         date_time__gte=timezone.now()
     ).order_by("date_time")
 
@@ -135,8 +137,14 @@ def doctor_schedule(request, pk):
 # История приёмов
 @login_required
 def history(request):
-    appts = Appointment.objects.filter(patient=request.user.patient)
-    return render(request, "clinic/history.html", {"appointments": appts})
+    # Получаем все приёмы текущего пациента
+    appts = Appointment.objects.filter(patient=request.user.patient).order_by('-date_time')
+
+    # Передаём в контекст не только записи, но и текущее время
+    return render(request, "clinic/history.html", {
+        "appointments": appts,
+        "now": timezone.now(),
+    })
 
 
 @login_required

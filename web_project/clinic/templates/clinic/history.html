@@ -19,14 +19,20 @@
           <div>
             <strong>{{ a.service }} у Dr. {{ a.doctor.user.last_name }}</strong><br>
             {{ a.date_time|date:"d.m.Y H:i" }}
-            {% if a.review %}
-              <div class="mt-2"><em>Отзыв оставлен</em></div>
-            {% else %}
-              <a href="{% url 'leave_review' a.pk %}" class="btn btn-outline-secondary btn-sm mt-2">
-                Оставить отзыв
-              </a>
+
+            {# Показываем кнопку «Оставить отзыв» только если приём уже в прошлом #}
+            {% if a.date_time < now %}
+              {% if a.review %}
+                <div class="mt-2"><em>Отзыв оставлен</em></div>
+              {% else %}
+                <a href="{% url 'leave_review' a.pk %}"
+                   class="btn btn-outline-secondary btn-sm mt-2">
+                  Оставить отзыв
+                </a>
+              {% endif %}
             {% endif %}
           </div>
+
           <form method="post" action="{% url 'cancel_appointment' a.pk %}">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger btn-sm">Отменить запись</button>
