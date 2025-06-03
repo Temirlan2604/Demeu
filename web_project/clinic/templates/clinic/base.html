@@ -35,19 +35,26 @@
       </button>
       <div class="collapse navbar-collapse" id="nav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <!-- Меню: при hover появится underline и изменится цвет -->
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'service_list' %}">Услуги</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'doctor_list' %}">Врачи</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'history' %}">История</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'edit_profile' %}">Профиль</a>
-          </li>
+          {% if not is_doctor %}
+            {# Меню для пациента #}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'service_list' %}">Услуги</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'doctor_list' %}">Врачи</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'history' %}">История</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'edit_profile' %}">Профиль</a>
+            </li>
+          {% else %}
+            {# Меню для врача #}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'my_patients' %}">Мои пациенты</a>
+            </li>
+          {% endif %}
         </ul>
         <div class="d-flex">
           {% if user.is_authenticated %}
@@ -82,14 +89,13 @@
   <script>
     // Инициализируем AOS (анимации при скролле)
     AOS.init({
-      duration: 600,       // длительность анимации в мс
-      once: true,          // анимация сработает только один раз
+      duration: 600,
+      once: true,
       easing: 'ease-in-out'
     });
   </script>
 </body>
 </html>
-
 
 <style>
   .star-half {
@@ -106,4 +112,3 @@
     color: #fadb14; /* цвет заполненной половинки */
   }
 </style>
-

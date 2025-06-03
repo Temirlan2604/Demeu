@@ -7,18 +7,27 @@ from django.contrib import messages
 from django.db.models import Q, Avg, Prefetch
 from django.utils import timezone
 import datetime
+from collections import defaultdict
+
 
 def home_view(request):
     return render(request, 'clinic/home.html')
 
 # Общее контекстное меню
 def navbar_context(request):
-    return {"user": request.user}
+    # Если пользователь не аутентифицирован, is_doctor всегда False
+    is_doctor = False
+    if request.user.is_authenticated:
+        # проверяем, есть ли у текущего пользователя профиль врача
+        is_doctor = Doctor.objects.filter(user=request.user).exists()
+
+    return {
+        "user": request.user,
+        "is_doctor": is_doctor,
+    }
 
 
 # Регистрация
-
-
 def register(request):
     form = RegistrationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -29,8 +38,6 @@ def register(request):
 
 
 # Логин
-
-
 def user_login(request):
     form = LoginForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -40,8 +47,6 @@ def user_login(request):
 
 
 # Logout
-
-
 def user_logout(request):
     logout(request)
     return redirect("login")
@@ -249,4 +254,35 @@ def edit_profile(request):
 
     return render(request, 'clinic/edit_profile.html', {
         'form': form
+    })
+
+
+@login_required
+def my_patients(request):
+    try:
+        # Предполагается, что в модели Doctor есть OneToOneField на User:
+        doctor = request.user.doctor
+    except Doctor.DoesNotExist:
+        # Если у пользователя нет связанного объекта Doctor, перенаправляем на домашнюю
+        return redirect("home")
+
+    # Берём все записи к этому доктору (и пациенты через patient.user)
+    all_appointments = Appointment.objects.filter(
+        doctor=doctor
+    ).select_related("patient__user", "service").order_by("date_time")
+
+    # Группируем по чистой дате (без времени)
+    patients_by_date = defaultdict(list)
+    for appt in all_appointments:
+        date_only = appt.date_time.date()  # например, datetime.date(2025, 6, 10)
+        patients_by_date[date_only].append(appt)
+
+    # Превращаем в список ( [ (date, [appt1, appt2]), ... ] ), отсортированный по дате
+    grouped_list = sorted(patients_by_date.items(), key=lambda x: x[0])
+
+    # Передаём is_doctor=True, чтобы базовый шаблон понимал, что это врач
+    return render(request, "clinic/my_patients.html", {
+        "doctor": doctor,
+        "grouped_list": grouped_list,
+        "is_doctor": True,
     })

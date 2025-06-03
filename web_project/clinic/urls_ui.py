@@ -2,7 +2,7 @@ from django.urls import path
 from .views_ui import (
     home_view, register, user_login, user_logout,
     service_list, doctor_list, doctor_schedule,
-    history, leave_review, cancel_appointment, edit_profile
+    history, leave_review, cancel_appointment, edit_profile, my_patients
 )
 urlpatterns = [
      # теперь корень сайта — home_view
@@ -18,4 +18,5 @@ urlpatterns = [
     path('history/cancel/<int:pk>/', cancel_appointment, name='cancel_appointment'),
     path('review/<int:pk>/', leave_review, name='leave_review'),
     path('profile/edit/', edit_profile, name='edit_profile'),
+    path("my-patients/", my_patients, name="my_patients"),
 ]
