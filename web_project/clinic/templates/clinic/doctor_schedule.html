@@ -2,115 +2,133 @@
 {% load static %}
 
 {% block content %}
-<!-- Фото врача -->
-<div class="row align-items-center mb-4">
-  <!-- Левая колонка: квадратная рамка с фото -->
-  <div class="col-md-3 text-center">
-    {% if doctor.photo %}
-      <div class="border rounded overflow-hidden" style="width:300px; height:300px; margin:0 auto;">
-        <img
-          src="{{ doctor.photo.url }}"
-          alt="Фото Dr. {{ doctor.user.last_name }}"
-          class="img-fluid"
-          style="width:100%; height:100%; width:auto; height:auto;"
-        >
-      </div>
-    {% else %}
-      <div class="border rounded bg-light d-flex align-items-center justify-content-center mb-2" 
-           style="width:300px; height:300px;">
-        <span class="text-muted">Нет фото</span>
-      </div>
-    {% endif %}
-  </div>
-
-  <!-- Правая колонка: данные доктора и кнопка -->
-  <div class="col-md-9">
-    <h2 class="mb-1">
-      {{ doctor.user.last_name }} {{ doctor.user.first_name }} {{ doctor.user.patronymic }}
-    </h2>
-    <!-- Вот тут выводим звёздочки -->
-    <p class="mb-2">
-      <strong>Средний рейтинг:</strong>
-      {% for star in star_list %}
-        {% if star == 'full' %}
-          <span class="text-warning">&#9733;</span>
-        {% elif star == 'half' %}
-          <span class="star-half">&#9733;</span>
-        {% else %}
-          <span class="text-muted">&#9734;</span>
-        {% endif %}
-      {% endfor %}
-      <small class="text-secondary">({{ avg_rating|floatformat:1 }} / 5)</small>
-    </p>
-    <p class="text-secondary mb-3">
-      <strong>Специализация:</strong> {{ doctor.specialization }}
-    </p>
-
-    <h5 class="mb-2">Будущие приёмы</h5>
-    {% if upcoming %}
-      <ul class="list-group mb-3">
-        {% for appt in upcoming %}
-          <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-            {{ appt.date_time|date:"d.m.Y H:i" }}
-            <span class="badge bg-secondary">{{ appt.service.name }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="text-muted mb-3">Нет запланированных приёмов.</p>
-    {% endif %}
-
-  <!-- Кнопка открытия модального окна -->
-  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#calendarModal">
-    Записаться на приём
-  </button>
-
-  <!-- Modal: календарь + форма -->
-  <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="calendarModalLabel">Выбор даты и времени</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <!-- Фото врача и верхняя часть страницы без изменений -->
+  <div class="row align-items-center mb-4">
+    <!-- Левая колонка: фото -->
+    <div class="col-md-3 text-center">
+      {% if doctor.photo %}
+        <div class="border rounded overflow-hidden" style="width:300px; height:300px; margin:0 auto;">
+          <img
+            src="{{ doctor.photo.url }}"
+            alt="Фото Dr. {{ doctor.user.last_name }}"
+            class="img-fluid"
+            style="width:100%; height:100%; width:auto; height:auto;"
+          >
         </div>
-        <div class="modal-body">
-          <div class="row">
-            <!-- Календарь -->
-            <div class="col-md-8">
-              <!-- задаём высоту: 70% от viewport или минимум 400px -->
-              <div id="modalCalendar" style="height:70vh; min-height:400px;"></div>
+      {% else %}
+        <div class="border rounded bg-light d-flex align-items-center justify-content-center mb-2" 
+             style="width:300px; height:300px;">
+          <span class="text-muted">Нет фото</span>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Правая колонка: данные доктора -->
+    <div class="col-md-9">
+      <h2 class="mb-1">
+        {{ doctor.user.last_name }} {{ doctor.user.first_name }} {{ doctor.user.patronymic }}
+      </h2>
+      <p class="mb-2">
+        <strong>Средний рейтинг:</strong>
+        {% for star in star_list %}
+          {% if star == 'full' %}
+            <span class="text-warning">&#9733;</span>
+          {% elif star == 'half' %}
+            <span class="star-half">&#9733;</span>
+          {% else %}
+            <span class="text-muted">&#9734;</span>
+          {% endif %}
+        {% endfor %}
+        <small class="text-secondary">({{ avg_rating|floatformat:1 }} / 5)</small>
+      </p>
+      <p class="text-secondary mb-3">
+        <strong>Специализация:</strong> {{ doctor.specialization }}
+      </p>
+
+      <h5 class="mb-2">Будущие приёмы</h5>
+      {% if upcoming %}
+        <ul class="list-group mb-3">
+          {% for appt in upcoming %}
+            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+              {{ appt.date_time|date:"d.m.Y H:i" }}
+              <span class="badge bg-secondary">{{ appt.service.name }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted mb-3">Нет запланированных приёмов.</p>
+      {% endif %}
+
+      <!-- Кнопка открытия модального окна -->
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#calendarModal">
+        Записаться на приём
+      </button>
+
+      <!-- Modal: календарь + форма -->
+      <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="calendarModalLabel">Выбор даты и времени</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <!-- Форма -->
-            <div class="col-md-4">
-              <form id="modalBookingForm" method="post">
-                {% csrf_token %}
-                <div class="mb-3">
-                  <label for="svc" class="form-label">Услуга</label>
-                  <select name="service" id="svc" class="form-select" required>
-                    {% for svc in services %}
-                      <option value="{{ svc.pk }}">{{ svc.name }} — {{ svc.price }} ₸</option>
-                    {% endfor %}
-                  </select>
+            <div class="modal-body">
+              <div class="row">
+                <!-- Календарь -->
+                <div class="col-md-8">
+                  <div id="modalCalendar" style="height:70vh; min-height:400px;"></div>
                 </div>
-                <div class="mb-3">
-                  <label class="form-label">Выбранный слот</label>
-                  <input type="text" id="dt_display" class="form-control" readonly placeholder="Не выбрано">
-                  <input type="hidden" name="date_time" id="dt_iso">
+                <!-- Форма -->
+                <div class="col-md-4">
+                  <form id="modalBookingForm" method="post">
+                    {% csrf_token %}
+
+                    <!-- === вот здесь меняем select === -->
+                    <div class="mb-3">
+                      <label for="svc" class="form-label">Услуга</label>
+                      <select name="service" id="svc" class="form-select" required>
+                        {# 1. Сначала услуги без категории #}
+                        {% for svc in uncat_services %}
+                          <option value="{{ svc.pk }}">
+                            {{ svc.name }} — {{ svc.price }} ₸
+                         </option>
+                        {% endfor %}
+                        {# 2. Далее категории с их услугами #}
+                        {% for cat in categories %}
+                          <optgroup label="{{ cat.name }}">
+                            {# сортируем услуги внутри категории по имени, если нужно #}
+                            {% for svc in cat.services.all|dictsort:"name" %}
+                              <option value="{{ svc.pk }}">
+                                {{ svc.name }} — {{ svc.price }} ₸
+                              </option>
+                            {% endfor %}
+                          </optgroup>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Выбранный слот</label>
+                      <input type="text" id="dt_display" class="form-control" readonly placeholder="Не выбрано">
+                      <input type="hidden" name="date_time" id="dt_iso">
+                    </div>
+                    <button type="submit" class="btn btn-success w-100" {% if not user.is_authenticated %}disabled{% endif %}>
+                      Подтвердить запись
+                    </button>
+                  </form>
                 </div>
-                <button type="submit" class="btn btn-success w-100" {% if not user.is_authenticated %}disabled{% endif %}>
-                  Подтвердить запись
-                </button>
-              </form>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      <!-- конец modal -->
     </div>
   </div>
 {% endblock %}
 
 {% block extra_scripts %}
-  <!-- FullCalendar CSS/JS и локаль -->
+  <!-- FullCalendar CSS/JS и локаль (как было) -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/ru.js"></script>
@@ -124,7 +142,7 @@
 
       const busy = [
         {% for a in appointments %}
-        { start: '{{ a.date_time|date:"c" }}' },
+          { start: '{{ a.date_time|date:"c" }}' },
         {% endfor %}
       ];
 
@@ -133,7 +151,6 @@
         if (initialized) return;
         initialized = true;
 
-        // Получаем сегодня без времени
         const todayDate = new Date();
         todayDate.setHours(0,0,0,0);
 
@@ -142,49 +159,31 @@
           initialView: 'timeGridWeek',
           initialDate: todayDate,
           allDaySlot: false,
-
-          // часовые слоты
           slotDuration: '01:00:00',
           slotLabelInterval: '01:00:00',
           snapDuration: '01:00:00',
           defaultTimedEventDuration: '01:00:00',
-
-          // показывать шкалу с 9 до 18
           slotMinTime: '09:00:00',
           slotMaxTime: '18:00:00',
-
-          // скрываем воскресенье, блокируем прошлое по дате
           hiddenDays: [0],
           validRange: { start: todayDate },
-
-          // часы работы: Пн–Пт 9–18, Сб 9–13
           businessHours: [
             { daysOfWeek: [1,2,3,4,5], startTime: '09:00', endTime: '18:00' },
             { daysOfWeek: [6],           startTime: '09:00', endTime: '13:00' }
           ],
-
-          // события, выбор
           events: busy,
           selectable: true,
           selectOverlap: false,
           selectConstraint: 'businessHours',
           eventOverlap: false,
-
-          // Дополнительно: запретить выбор слотов в прошлом на сегодня
           selectAllow: function(selectInfo) {
-            // selectInfo.start — JS-объект с началом выделенного диапазона
             return selectInfo.start >= new Date();
           },
-
-          // красивая метка времени и позиционирование на 9:00
           slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
           scrollTime: '09:00:00',
-
-          // растягиваем сетку на высоту контейнера
           expandRows: true,
           height: '70vh',
           contentHeight: 'auto',
-
           select: info => {
             dtIso.value = info.startStr.slice(0,16);
             const dt = new Date(info.start);

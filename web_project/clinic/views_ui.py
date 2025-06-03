@@ -136,10 +136,24 @@ def doctor_schedule(request, pk):
         date_time__gte=timezone.now()
     ).order_by("date_time")
 
+    # 1) Услуги, у которых нет категории (NULL)
+    uncat_services = Service.objects.filter(category__isnull=True).order_by("name")
+
+    # 2) Сами категории, у которых есть хотя бы по одной услуге. 
+    #    Для каждой категории заранее "запуллим" связанные услуги.
+    categories = (
+        ServiceCategory.objects
+        .filter(services__isnull=False)          # выбираем только те категории, у которых есть минимум одна услуга
+        .distinct()                              # убираем дубликаты
+        .order_by("name")                        # сортируем категории по имени
+        .prefetch_related("services")            # чтобы в шаблоне не делать доп. запросов к БД
+    )
+
+    # Если пришёл POST (пользователь нажал "Подтвердить запись"), создаём новую Appointment
     if request.method == "POST":
         service_id = request.POST.get("service")
-        date_time  = request.POST.get("date_time")
-        service    = Service.objects.get(pk=service_id)
+        date_time = request.POST.get("date_time")
+        service = Service.objects.get(pk=service_id)
         dt = datetime.datetime.fromisoformat(date_time)
         Appointment.objects.create(
             patient=request.user.patient,
@@ -153,12 +167,13 @@ def doctor_schedule(request, pk):
         request,
         "clinic/doctor_schedule.html",
         {
-            "doctor":      doctor,
-            "appointments":appointments,
-            "services":    services,
-            "upcoming":    upcoming,
-            "avg_rating":  avg_rating,
-            "star_list":   star_list,
+            "doctor": doctor,
+            "appointments": appointments,
+            "uncat_services": uncat_services,  
+            "categories": categories,           
+            "upcoming": upcoming,
+            "avg_rating": avg_rating,
+            "star_list": star_list,
         },
     )
 

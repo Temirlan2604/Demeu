@@ -17,10 +17,10 @@
       <div class="card mb-3">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>
-            <strong>{{ a.service }} у Dr. {{ a.doctor.user.last_name }}</strong><br>
+            <strong>{{ a.service }} у {{ a.doctor.user.last_name }} {{ a.doctor.user.first_name }} {{ a.doctor.user.patronymic }}</strong><br>
             {{ a.date_time|date:"d.m.Y H:i" }}
 
-            {# Показываем кнопку «Оставить отзыв» только если приём уже в прошлом #}
+            {# «Оставить отзыв» — только после приёма #}
             {% if a.date_time < now %}
               {% if a.review %}
                 <div class="mt-2"><em>Отзыв оставлен</em></div>
@@ -33,10 +33,15 @@
             {% endif %}
           </div>
 
-          <form method="post" action="{% url 'cancel_appointment' a.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger btn-sm">Отменить запись</button>
-          </form>
+          {# «Отменить запись» — только для будущих приёмов #}
+          {% if a.date_time >= now %}
+            <form method="post" action="{% url 'cancel_appointment' a.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm">
+                Отменить запись
+              </button>
+            </form>
+          {% endif %}
         </div>
       </div>
     {% endfor %}
