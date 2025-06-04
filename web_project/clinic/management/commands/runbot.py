@@ -376,10 +376,12 @@ class Command(BaseCommand):
                 return ASK_DATE
             ctx.user_data['date'] = ds
 
+            # Получаем выбранную дату и определяем рабочие часы
             date = datetime.datetime.strptime(ds, "%d.%m.%Y").date()
             wd = date.weekday()
             start, end = (9, 17) if wd < 5 else (9, 13)
 
+            # Список занятых часов у врача на эту дату
             busy = [
                 timezone.localtime(a.date_time).hour
                 for a in Appointment.objects.filter(
@@ -387,9 +389,25 @@ class Command(BaseCommand):
                     date_time__date=date
                 )
             ]
-            slots = [f"{h:02d}:00" for h in range(start, end) if h not in busy]
+
+            # — ИЗМЕНЕНИЕ: убираем прошедшие слоты, если date == сегодня
+            now_local = timezone.localtime(timezone.now())
+            if date == now_local.date():
+                # Берём только часы строго позже текущего часа
+                available_hours = [
+                    h for h in range(start, end)
+                    if h not in busy and h > now_local.hour
+                ]
+            else:
+                available_hours = [
+                    h for h in range(start, end)
+                    if h not in busy
+                ]
+
+            slots = [f"{h:02d}:00" for h in available_hours]
+
             if not slots:
-                update.message.reply_text("Все слоты заняты.", reply_markup=auth_menu)
+                update.message.reply_text("Все слоты заняты (или уже прошли).", reply_markup=auth_menu)
                 return ConversationHandler.END
 
             kb = [[t] for t in slots]
@@ -434,16 +452,22 @@ class Command(BaseCommand):
             except TelegramProfile.DoesNotExist:
                 return update.message.reply_text("Сначала войдите.", reply_markup=login_menu)
 
-            appts = Appointment.objects.filter(patient=tp.user.patient)
+            # — ИЗМЕНЕНИЕ: показываем только будущие приёмы (>= сейчас)
+            now = timezone.now()
+            appts = Appointment.objects.filter(
+                patient=tp.user.patient,
+                date_time__gte=now
+            ).order_by('date_time')
+
             if not appts:
-                return update.message.reply_text("У вас нет записей.",	reply_markup=auth_menu)
+                return update.message.reply_text("У вас нет предстоящих записей.", reply_markup=auth_menu)
 
             lines = [
                 f"{a.pk}. {a.service.name} — {timezone.localtime(a.date_time).strftime('%d.%m.%Y %H:%M')}"
                 for a in appts
             ]
             update.message.reply_text(
-                "Ваши записи:\n" + "\n".join(lines) +
+                "Ваши предстоящие записи:\n" + "\n".join(lines) +
                 "\n\nНажмите «Отменить запись», чтобы удалить одну из них.",
                 reply_markup=auth_menu
             )
@@ -455,9 +479,15 @@ class Command(BaseCommand):
             except TelegramProfile.DoesNotExist:
                 return update.message.reply_text("Сначала войдите.", reply_markup=login_menu)
 
-            appts = Appointment.objects.filter(patient=tp.user.patient)
+            # — ИЗМЕНЕНИЕ: показываем только будущие приёмы
+            now = timezone.now()
+            appts = Appointment.objects.filter(
+                patient=tp.user.patient,
+                date_time__gte=now
+            ).order_by('date_time')
+
             if not appts:
-                return update.message.reply_text("У вас нет записей.",	reply_markup=auth_menu)
+                return update.message.reply_text("У вас нет предстоящих записей для отмены.", reply_markup=auth_menu)
 
             lines = [
                 f"{a.pk}. {a.service.name} у Dr. {a.doctor.user.last_name} — "
@@ -465,7 +495,7 @@ class Command(BaseCommand):
                 for a in appts
             ]
             update.message.reply_text(
-                "Ваши записи:\n" + "\n".join(lines) +
+                "Ваши предстоящие записи:\n" + "\n".join(lines) +
                 "\n\nВведите номер записи для отмены:",
                 reply_markup=ReplyKeyboardRemove()
             )
@@ -484,8 +514,13 @@ class Command(BaseCommand):
                 update.message.reply_text("Запись с таким номером не найдена.")
                 return ASK_CANCEL
 
+            # — ИЗМЕНЕНИЕ: дополнительно проверяем, что запись ещё не прошла
+            if appt.date_time < timezone.now():
+                update.message.reply_text("❌ Нельзя отменить уже прошедший приём.", reply_markup=auth_menu)
+                return ConversationHandler.END
+
             appt.delete()
-            update.message.reply_text("❌ Запись отменена.",	reply_markup=auth_menu)
+            update.message.reply_text("❌ Запись отменена.", reply_markup=auth_menu)
             return ConversationHandler.END
 
         def profile_cmd(update, ctx):
@@ -507,11 +542,11 @@ class Command(BaseCommand):
         conv_login = ConversationHandler(
             entry_points=[
                 CommandHandler('login', login_start),
-                MessageHandler(Filters.regex('^Войти$'),	login_start)
+                MessageHandler(Filters.regex('^Войти$'),    login_start)
             ],
             states={
-                ASK_LOGIN_PHONE: [MessageHandler(Filters.contact | (Filters.text & ~Filters.command),	login_phone)],
-                ASK_LOGIN_PASS:  [MessageHandler(Filters.text & ~Filters.command,	login_pass)],
+                ASK_LOGIN_PHONE: [MessageHandler(Filters.contact | (Filters.text & ~Filters.command),    login_phone)],
+                ASK_LOGIN_PASS:  [MessageHandler(Filters.text & ~Filters.command,    login_pass)],
             },
             fallbacks=[]
         )
@@ -520,13 +555,13 @@ class Command(BaseCommand):
         conv_register = ConversationHandler(
             entry_points=[
                 CommandHandler('register', register_start),
-                MessageHandler(Filters.regex('^Зарегистрироваться$'),	register_start)
+                MessageHandler(Filters.regex('^Зарегистрироваться$'),    register_start)
             ],
             states={
-                ASK_PHONE:    [MessageHandler(Filters.contact | (Filters.text & ~Filters.command),	register_phone)],
-                ASK_FIRST:    [MessageHandler(Filters.text & ~Filters.command,	register_first)],
-                ASK_LAST:     [MessageHandler(Filters.text & ~Filters.command,	register_last)],
-                ASK_REG_PASS: [MessageHandler(Filters.text & ~Filters.command,	register_pass)],
+                ASK_PHONE:    [MessageHandler(Filters.contact | (Filters.text & ~Filters.command),    register_phone)],
+                ASK_FIRST:    [MessageHandler(Filters.text & ~Filters.command,    register_first)],
+                ASK_LAST:     [MessageHandler(Filters.text & ~Filters.command,    register_last)],
+                ASK_REG_PASS: [MessageHandler(Filters.text & ~Filters.command,    register_pass)],
             },
             fallbacks=[]
         )
@@ -538,29 +573,29 @@ class Command(BaseCommand):
                 CommandHandler('book', book_start)
             ],
             states={
-                ASK_DOCTOR:             [MessageHandler(Filters.text & ~Filters.command,	book_doctor)],
-                ASK_CATEGORY_OR_SERVICE: [MessageHandler(Filters.text & ~Filters.command,	book_category_or_service)],
-                ASK_SERVICE_IN_CATEGORY: [MessageHandler(Filters.text & ~Filters.command,	book_service_in_category)],
-                ASK_DATE:               [MessageHandler(Filters.text & ~Filters.command,	book_date)],
-                ASK_TIME:               [MessageHandler(Filters.text & ~Filters.command,	book_time)],
+                ASK_DOCTOR:             [MessageHandler(Filters.text & ~Filters.command,    book_doctor)],
+                ASK_CATEGORY_OR_SERVICE: [MessageHandler(Filters.text & ~Filters.command,    book_category_or_service)],
+                ASK_SERVICE_IN_CATEGORY: [MessageHandler(Filters.text & ~Filters.command,    book_service_in_category)],
+                ASK_DATE:               [MessageHandler(Filters.text & ~Filters.command,    book_date)],
+                ASK_TIME:               [MessageHandler(Filters.text & ~Filters.command,    book_time)],
             },
             fallbacks=[]
         )
         dp.add_handler(conv_book)
 
         conv_cancel = ConversationHandler(
-            entry_points=[MessageHandler(Filters.regex('^Отменить запись$'),	cancel_start)],
-            states={ASK_CANCEL: [MessageHandler(Filters.text & ~Filters.command,	cancel_confirm)]},
+            entry_points=[MessageHandler(Filters.regex('^Отменить запись$'),    cancel_start)],
+            states={ASK_CANCEL: [MessageHandler(Filters.text & ~Filters.command,    cancel_confirm)]},
             fallbacks=[]
         )
         dp.add_handler(conv_cancel)
 
         # Привязываем остальные команды-кнопки
-        dp.add_handler(MessageHandler(Filters.regex('^Услуги$'),	services_cmd))
-        dp.add_handler(MessageHandler(Filters.regex('^Врачи$'),	doctors_cmd))
-        dp.add_handler(MessageHandler(Filters.regex('^Мои записи$'),	myappointments_cmd))
-        dp.add_handler(MessageHandler(Filters.regex('^Профиль$'),	profile_cmd))
-        dp.add_handler(MessageHandler(Filters.regex('^Помощь$'),	help_cmd))
+        dp.add_handler(MessageHandler(Filters.regex('^Услуги$'),    services_cmd))
+        dp.add_handler(MessageHandler(Filters.regex('^Врачи$'),    doctors_cmd))
+        dp.add_handler(MessageHandler(Filters.regex('^Мои записи$'),    myappointments_cmd))
+        dp.add_handler(MessageHandler(Filters.regex('^Профиль$'),    profile_cmd))
+        dp.add_handler(MessageHandler(Filters.regex('^Помощь$'),    help_cmd))
 
         # Одиночные команды
         dp.add_handler(CommandHandler("start", start))
