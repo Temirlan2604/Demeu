@@ -4,7 +4,7 @@ from .models import Service, Doctor, Appointment
 from .serializers import ServiceSerializer, DoctorSerializer, AppointmentSerializer
 
 
-class ServiceListView(generics.ListAPIView):
+class ServiceListCreateView(generics.ListCreateAPIView):
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
 
